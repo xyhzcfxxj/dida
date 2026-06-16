@@ -14,6 +14,8 @@ import {
   Trash2, 
   Edit2, 
   Calendar, 
+  CalendarDays,
+  ListTodo,
   Flag, 
   Folder,
   LogOut,
@@ -24,6 +26,7 @@ import {
   Clock,
   AlertCircle
 } from 'lucide-react';
+import Link from 'next/link';
 import {
   Dialog,
   DialogContent,
@@ -469,6 +472,18 @@ export default function TodoPage() {
                 <CheckCircle2 className="h-5 w-5 text-white" />
               </div>
               <h1 className="text-xl font-bold text-slate-800">待办事项</h1>
+              
+              {/* 导航链接 */}
+              <div className="hidden md:flex items-center gap-2 ml-4">
+                <Link href="/" className="flex items-center gap-1 text-slate-600 hover:text-blue-500 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
+                  <ListTodo className="h-4 w-4" />
+                  <span className="text-sm font-medium">待办</span>
+                </Link>
+                <Link href="/calendar" className="flex items-center gap-1 text-slate-600 hover:text-blue-500 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors">
+                  <CalendarDays className="h-4 w-4" />
+                  <span className="text-sm font-medium">日历</span>
+                </Link>
+              </div>
             </div>
             
             <div className="flex items-center gap-4">

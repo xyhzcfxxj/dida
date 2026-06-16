@@ -81,6 +81,53 @@ export const todoRules = pgTable(
   ]
 );
 
+// 日程事件表
+export const calendarEvents = pgTable(
+  "calendar_events",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    user_id: uuid("user_id").notNull().default(sql`auth.uid()`),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    // 事件类型: event(事件), task(任务), reminder(提醒)
+    event_type: varchar("event_type", { length: 20 }).notNull().default("event"),
+    // 开始时间
+    start_time: timestamp("start_time", { withTimezone: true }).notNull(),
+    // 结束时间
+    end_time: timestamp("end_time", { withTimezone: true }),
+    // 是否全天事件
+    is_all_day: boolean("is_all_day").notNull().default(false),
+    // 地点
+    location: varchar("location", { length: 255 }),
+    // 关联的分类
+    category_id: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+    // 关联的待办事项（可选）
+    todo_id: uuid("todo_id").references(() => todos.id, { onDelete: "set null" }),
+    // 颜色（用于日历显示）
+    color: varchar("color", { length: 20 }).default("#3B82F6"),
+    // 提醒时间
+    reminder_time: timestamp("reminder_time", { withTimezone: true }),
+    // 重复类型: none, daily, weekly, monthly, yearly
+    repeat_type: varchar("repeat_type", { length: 20 }).default("none"),
+    // 重复结束日期
+    repeat_end_date: timestamp("repeat_end_date", { withTimezone: true }),
+    // 是否完成
+    is_completed: boolean("is_completed").notNull().default(false),
+    completed_at: timestamp("completed_at", { withTimezone: true }),
+    created_at: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updated_at: timestamp("updated_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("calendar_events_user_id_idx").on(table.user_id),
+    index("calendar_events_start_time_idx").on(table.start_time),
+    index("calendar_events_end_time_idx").on(table.end_time),
+    index("calendar_events_category_id_idx").on(table.category_id),
+    index("calendar_events_todo_id_idx").on(table.todo_id),
+    index("calendar_events_event_type_idx").on(table.event_type),
+    index("calendar_events_user_start_idx").on(table.user_id, table.start_time),
+  ]
+);
+
 // 类型导出
 export type Category = typeof categories.$inferSelect;
 export type InsertCategory = typeof categories.$inferInsert;
@@ -88,3 +135,5 @@ export type Todo = typeof todos.$inferSelect;
 export type InsertTodo = typeof todos.$inferInsert;
 export type TodoRule = typeof todoRules.$inferSelect;
 export type InsertTodoRule = typeof todoRules.$inferInsert;
+export type CalendarEvent = typeof calendarEvents.$inferSelect;
+export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;
