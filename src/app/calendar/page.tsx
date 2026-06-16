@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/auth-context';
@@ -104,6 +105,7 @@ export default function CalendarPage() {
     location: '',
     category_id: '',
     color: '#3B82F6',
+    sync_to_todo: false, // 是否同步到待办
   });
 
   // 获取日程事件
@@ -238,6 +240,7 @@ export default function CalendarPage() {
         location: '',
         category_id: '',
         color: '#3B82F6',
+        sync_to_todo: false,
       });
       fetchEvents();
     } catch {
@@ -917,6 +920,13 @@ export default function CalendarPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={newEvent.sync_to_todo}
+                  onCheckedChange={checked => setNewEvent({ ...newEvent, sync_to_todo: checked as boolean })}
+                />
+                <Label className="text-sm text-muted-foreground">同步到待办事项</Label>
               </div>
             </div>
           </div>

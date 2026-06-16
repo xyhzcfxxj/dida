@@ -130,6 +130,10 @@ export default function TodoPage() {
     category_id: '',
     priority: 'medium',
     due_date: '',
+    start_time: '',
+    end_time: '',
+    is_all_day: false,
+    sync_to_calendar: true, // 默认同步到日历
   });
   const [categoryForm, setCategoryForm] = useState({
     name: '',
@@ -201,6 +205,10 @@ export default function TodoPage() {
           category_id: formData.category_id || null,
           priority: formData.priority,
           due_date: formData.due_date || null,
+          start_time: formData.start_time ? new Date(formData.start_time).toISOString() : null,
+          end_time: formData.end_time ? new Date(formData.end_time).toISOString() : null,
+          is_all_day: formData.is_all_day,
+          sync_to_calendar: formData.sync_to_calendar,
         }),
       });
       
@@ -215,6 +223,10 @@ export default function TodoPage() {
           category_id: '',
           priority: 'medium',
           due_date: '',
+          start_time: '',
+          end_time: '',
+          is_all_day: false,
+          sync_to_calendar: true,
         });
         toast.success('任务创建成功');
       } else {
@@ -446,6 +458,10 @@ export default function TodoPage() {
       category_id: todo.category_id || '',
       priority: todo.priority,
       due_date: todo.due_date ? new Date(todo.due_date).toISOString().split('T')[0] : '',
+      start_time: '',
+      end_time: '',
+      is_all_day: false,
+      sync_to_calendar: false,
     });
     setIsEditDialogOpen(true);
   };
@@ -716,6 +732,45 @@ export default function TodoPage() {
                   value={formData.due_date}
                   onChange={e => setFormData({ ...formData, due_date: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>时间设置</Label>
+                  <div className="flex items-center gap-2">
+                    <Checkbox 
+                      checked={formData.is_all_day}
+                      onCheckedChange={checked => setFormData({ ...formData, is_all_day: checked as boolean, start_time: '', end_time: '' })}
+                    />
+                    <span className="text-sm text-muted-foreground">全天</span>
+                  </div>
+                </div>
+                {!formData.is_all_day && (
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">开始时间</Label>
+                      <Input 
+                        type="datetime-local"
+                        value={formData.start_time}
+                        onChange={e => setFormData({ ...formData, start_time: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">结束时间</Label>
+                      <Input 
+                        type="datetime-local"
+                        value={formData.end_time}
+                        onChange={e => setFormData({ ...formData, end_time: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox 
+                  checked={formData.sync_to_calendar}
+                  onCheckedChange={checked => setFormData({ ...formData, sync_to_calendar: checked as boolean })}
+                />
+                <Label className="text-sm text-muted-foreground">同步到日历</Label>
               </div>
             </div>
             <DialogFooter>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseClient } from '@/storage/database/supabase-client';
-import { InsertCalendarEvent, CalendarEvent } from '@/storage/database/shared/schema';
+import { InsertCalendarEvent, CalendarEvent, todos } from '@/storage/database/shared/schema';
 
 // 获取日程事件列表
 export async function GET(req: NextRequest) {
@@ -95,6 +95,34 @@ export async function POST(req: NextRequest) {
   
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+  
+  // 同步到待办事项（当 event_type 为 task 或 sync_to_todo 为 true）
+  if ((body.sync_to_todo || body.event_type === 'task') && data) {
+    const todoData = {
+      title: body.title,
+      description: body.description || null,
+      category_id: body.category_id || null,
+      priority: 'medium',
+      status: 'pending',
+      due_date: body.start_time ? new Date(body.start_time).toISOString().split('T')[0] : null,
+      is_completed: false,
+      user_id: user.id,
+    };
+    
+    const { data: todoDataResult } = await client
+      .from('todos')
+      .insert(todoData)
+      .select()
+      .single();
+    
+    // 更新日程关联待办 ID
+    if (todoDataResult) {
+      await client
+        .from('calendar_events')
+        .update({ todo_id: todoDataResult.id })
+        .eq('id', data.id);
+    }
   }
   
   return NextResponse.json(data as CalendarEvent);
