@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inspector } from 'react-dev-inspector';
 import { SupabaseConfigProvider } from '@/lib/supabase-config-inject';
 import { AuthProvider } from '@/lib/auth-context';
+import { Toaster } from '@/components/ui/sonner';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -50,6 +51,7 @@ export default function RootLayout({
           <AuthProvider>
             {isDev && <Inspector />}
             {children}
+            <Toaster position="top-center" richColors />
           </AuthProvider>
         </SupabaseConfigProvider>
       </body>

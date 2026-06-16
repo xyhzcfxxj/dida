@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import { toast } from 'sonner';
 import { 
   Plus, 
   Trash2, 
@@ -173,10 +174,16 @@ export default function TodoPage() {
 
   // 创建待办事项
   const handleAddTodo = async () => {
-    if (!formData.title.trim()) return;
+    if (!formData.title.trim()) {
+      toast.error('请输入任务标题');
+      return;
+    }
     
     const token = await getSessionToken();
-    if (!token) return;
+    if (!token) {
+      toast.error('请先登录');
+      return;
+    }
     
     try {
       const res = await fetch('/api/todos', {
@@ -194,9 +201,10 @@ export default function TodoPage() {
         }),
       });
       
+      const data = await res.json();
+      
       if (res.ok) {
-        const newTodo = await res.json();
-        setTodos([newTodo, ...todos]);
+        setTodos([data, ...todos]);
         setIsAddDialogOpen(false);
         setFormData({
           title: '',
@@ -205,18 +213,28 @@ export default function TodoPage() {
           priority: 'medium',
           due_date: '',
         });
+        toast.success('任务创建成功');
+      } else {
+        toast.error(data.error || '创建失败');
       }
     } catch (error) {
       console.error('Add todo error:', error);
+      toast.error('创建失败，请稍后重试');
     }
   };
 
   // 更新待办事项
   const handleUpdateTodo = async () => {
-    if (!editingTodo || !formData.title.trim()) return;
+    if (!editingTodo || !formData.title.trim()) {
+      toast.error('请输入任务标题');
+      return;
+    }
     
     const token = await getSessionToken();
-    if (!token) return;
+    if (!token) {
+      toast.error('请先登录');
+      return;
+    }
     
     try {
       const res = await fetch(`/api/todos/${editingTodo.id}`, {
@@ -234,21 +252,29 @@ export default function TodoPage() {
         }),
       });
       
+      const data = await res.json();
+      
       if (res.ok) {
-        const updatedTodo = await res.json();
-        setTodos(todos.map(t => t.id === editingTodo.id ? updatedTodo : t));
+        setTodos(todos.map(t => t.id === editingTodo.id ? data : t));
         setIsEditDialogOpen(false);
         setEditingTodo(null);
+        toast.success('任务更新成功');
+      } else {
+        toast.error(data.error || '更新失败');
       }
     } catch (error) {
       console.error('Update todo error:', error);
+      toast.error('更新失败，请稍后重试');
     }
   };
 
   // 删除待办事项
   const handleDeleteTodo = async (id: string) => {
     const token = await getSessionToken();
-    if (!token) return;
+    if (!token) {
+      toast.error('请先登录');
+      return;
+    }
     
     try {
       const res = await fetch(`/api/todos/${id}`, {
@@ -256,19 +282,28 @@ export default function TodoPage() {
         headers: { 'x-session': token },
       });
       
+      const data = await res.json();
+      
       if (res.ok) {
         setTodos(todos.filter(t => t.id !== id));
         setDeletingTodoId(null);
+        toast.success('任务已删除');
+      } else {
+        toast.error(data.error || '删除失败');
       }
     } catch (error) {
       console.error('Delete todo error:', error);
+      toast.error('删除失败，请稍后重试');
     }
   };
 
   // 标记完成
   const handleToggleComplete = async (todo: Todo) => {
     const token = await getSessionToken();
-    if (!token) return;
+    if (!token) {
+      toast.error('请先登录');
+      return;
+    }
     
     try {
       const res = await fetch(`/api/todos/${todo.id}`, {
@@ -282,21 +317,32 @@ export default function TodoPage() {
         }),
       });
       
+      const data = await res.json();
+      
       if (res.ok) {
-        const updatedTodo = await res.json();
-        setTodos(todos.map(t => t.id === todo.id ? updatedTodo : t));
+        setTodos(todos.map(t => t.id === todo.id ? data : t));
+        toast.success(todo.is_completed ? '任务已标记为未完成' : '任务已完成');
+      } else {
+        toast.error(data.error || '操作失败');
       }
     } catch (error) {
       console.error('Toggle complete error:', error);
+      toast.error('操作失败，请稍后重试');
     }
   };
 
   // 创建分类
   const handleAddCategory = async () => {
-    if (!categoryForm.name.trim()) return;
+    if (!categoryForm.name.trim()) {
+      toast.error('请输入分类名称');
+      return;
+    }
     
     const token = await getSessionToken();
-    if (!token) return;
+    if (!token) {
+      toast.error('请先登录');
+      return;
+    }
     
     try {
       const res = await fetch('/api/categories', {
@@ -308,23 +354,34 @@ export default function TodoPage() {
         body: JSON.stringify(categoryForm),
       });
       
+      const data = await res.json();
+      
       if (res.ok) {
-        const newCategory = await res.json();
-        setCategories([...categories, newCategory]);
+        setCategories([...categories, data]);
         setIsCategoryDialogOpen(false);
         setCategoryForm({ name: '', color: '#3B82F6' });
+        toast.success('分类创建成功');
+      } else {
+        toast.error(data.error || '创建失败');
       }
     } catch (error) {
       console.error('Add category error:', error);
+      toast.error('创建失败，请稍后重试');
     }
   };
 
   // 扣子自动生成
   const handleGenerate = async () => {
-    if (!generatePrompt.trim()) return;
+    if (!generatePrompt.trim()) {
+      toast.error('请输入生成提示');
+      return;
+    }
     
     const token = await getSessionToken();
-    if (!token) return;
+    if (!token) {
+      toast.error('请先登录');
+      return;
+    }
     
     setIsGenerating(true);
     
@@ -338,12 +395,13 @@ export default function TodoPage() {
         body: JSON.stringify({ prompt: generatePrompt }),
       });
       
+      const data = await res.json();
+      
       if (res.ok) {
-        const data = await res.json();
-        
         // 批量创建生成的待办事项
+        let createdCount = 0;
         for (const suggestion of data.suggestions) {
-          await fetch('/api/todos', {
+          const createRes = await fetch('/api/todos', {
             method: 'POST',
             headers: {
               'x-session': token,
@@ -355,15 +413,22 @@ export default function TodoPage() {
               priority: suggestion.priority || 'medium',
             }),
           });
+          if (createRes.ok) {
+            createdCount++;
+          }
         }
         
         // 重新获取数据
         fetchData();
         setIsGenerateDialogOpen(false);
         setGeneratePrompt('');
+        toast.success(`已生成 ${createdCount} 个任务`);
+      } else {
+        toast.error(data.error || '生成失败');
       }
     } catch (error) {
       console.error('Generate error:', error);
+      toast.error('生成失败，请稍后重试');
     } finally {
       setIsGenerating(false);
     }
@@ -834,6 +899,8 @@ export default function TodoPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        {/* Toast 提示 */}
+        <div className="fixed bottom-4 right-4 z-50" />
       </div>
     </AuthGuard>
   );
