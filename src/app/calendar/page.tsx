@@ -216,10 +216,10 @@ export default function CalendarPage() {
           ...newEvent,
           start_time: newEvent.is_all_day 
             ? selectedDate ? startOfDay(selectedDate).toISOString() : startOfDay(currentDate).toISOString()
-            : newEvent.start_time,
+            : newEvent.start_time ? new Date(newEvent.start_time).toISOString() : new Date().toISOString(),
           end_time: newEvent.is_all_day 
             ? selectedDate ? endOfDay(selectedDate).toISOString() : endOfDay(currentDate).toISOString()
-            : newEvent.end_time || null,
+            : newEvent.end_time ? new Date(newEvent.end_time).toISOString() : null,
         }),
       });
       
@@ -258,7 +258,11 @@ export default function CalendarPage() {
           'Content-Type': 'application/json',
           'x-session': token,
         },
-        body: JSON.stringify(editingEvent),
+        body: JSON.stringify({
+          ...editingEvent,
+          start_time: editingEvent.start_time ? new Date(editingEvent.start_time).toISOString() : undefined,
+          end_time: editingEvent.end_time ? new Date(editingEvent.end_time).toISOString() : null,
+        }),
       });
       
       if (!response.ok) throw new Error('更新失败');
