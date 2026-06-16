@@ -214,6 +214,7 @@ export default function CalendarPage() {
         },
         body: JSON.stringify({
           ...newEvent,
+          category_id: newEvent.category_id === 'none' ? null : newEvent.category_id,
           start_time: newEvent.is_all_day 
             ? selectedDate ? startOfDay(selectedDate).toISOString() : startOfDay(currentDate).toISOString()
             : newEvent.start_time ? new Date(newEvent.start_time).toISOString() : new Date().toISOString(),
@@ -260,6 +261,7 @@ export default function CalendarPage() {
         },
         body: JSON.stringify({
           ...editingEvent,
+          category_id: editingEvent.category_id === 'none' ? null : editingEvent.category_id,
           start_time: editingEvent.start_time ? new Date(editingEvent.start_time).toISOString() : undefined,
           end_time: editingEvent.end_time ? new Date(editingEvent.end_time).toISOString() : null,
         }),
@@ -882,7 +884,7 @@ export default function CalendarPage() {
                     <SelectValue placeholder="选择分类" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">无分类</SelectItem>
+                    <SelectItem value="none">无分类</SelectItem>
                     {categories.map(cat => (
                       <SelectItem key={cat.id} value={cat.id}>
                         <div className="flex items-center gap-2">
