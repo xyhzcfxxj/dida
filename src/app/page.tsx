@@ -449,8 +449,13 @@ export default function HomePage() {
   };
 
   // 获取某一天的待办（通过 start_time 或 due_date）
+  // 只显示没有同步到日历的待办（避免重复显示）
   const getTodosForDate = (date: Date): Todo[] => {
     return todos.filter(todo => {
+      // 如果该待办已有日程关联，不显示（已在日程中显示）
+      const hasEvent = events.some(event => event.todo_id === todo.id);
+      if (hasEvent) return false;
+      
       if (todo.start_time) {
         const todoDate = new Date(todo.start_time);
         return isSameDay(todoDate, date);
