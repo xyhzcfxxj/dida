@@ -647,10 +647,19 @@ export default function HomePage() {
           /* Calendar View */
           <div className="flex h-[calc(100vh-3.5rem)] bg-gray-50">
             {/* Left - Calendar */}
-            <div className="flex-1 p-6 overflow-auto">
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className={cn(
+              "flex-1 p-6",
+              calendarViewType === 'month' ? 'overflow-hidden' : 'overflow-auto'
+            )}>
+              <div className={cn(
+                "bg-white rounded-2xl shadow-sm overflow-hidden",
+                calendarViewType === 'month' && 'h-full flex flex-col'
+              )}>
                 {/* Calendar Header */}
-                <div className="p-4 bg-white border-b border-gray-100">
+                <div className={cn(
+                  "p-4 bg-white border-b border-gray-100",
+                  calendarViewType === 'month' && 'shrink-0'
+                )}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <button
@@ -665,10 +674,7 @@ export default function HomePage() {
                       </button>
                       <div className="text-center min-w-[120px]">
                         {calendarViewType === 'month' && (
-                          <>
-                            <h2 className="text-2xl font-bold text-gray-800">{format(currentMonth, 'yyyy年')}</h2>
-                            <p className="text-gray-500">{format(currentMonth, 'MM月')}</p>
-                          </>
+                          <h2 className="text-xl font-bold text-gray-800">{format(currentMonth, 'yyyy年MM月')}</h2>
                         )}
                         {calendarViewType === 'week' && (
                           <>
@@ -736,12 +742,12 @@ export default function HomePage() {
                 
                 {/* Calendar Content - based on view type */}
                 {calendarViewType === 'month' && (
-                  <>
+                  <div className="flex flex-col h-full">
                     {/* Week headers */}
-                    <div className="grid grid-cols-7 bg-gray-50">
+                    <div className="grid grid-cols-7 bg-gray-50 shrink-0">
                       {['日', '一', '二', '三', '四', '五', '六'].map((day, i) => (
                         <div key={day} className={cn(
-                          'text-center text-xs font-medium py-1.5',
+                          'text-center text-xs font-medium py-1',
                           i === 0 || i === 6 ? 'text-red-400' : 'text-gray-500'
                         )}>
                           {day}
@@ -749,8 +755,8 @@ export default function HomePage() {
                       ))}
                     </div>
                     
-                    {/* Month grid */}
-                    <div className="grid grid-cols-7 gap-px bg-gray-200">
+                    {/* Month grid - fills remaining height */}
+                    <div className="grid grid-cols-7 grid-rows-6 flex-1 gap-px bg-gray-200">
                       {calendarDays.map(day => {
                         const dayEvents = getEventsForDate(day);
                         const dayTodos = getTodosForDate(day);
@@ -770,7 +776,7 @@ export default function HomePage() {
                           <div
                             key={day.toISOString()}
                             className={cn(
-                              'min-h-[120px] p-2 transition-all cursor-pointer',
+                              'min-h-[80px] p-1 transition-all cursor-pointer',
                               isCurrentMonth ? 'bg-white' : 'bg-gray-100',
                               isSelected && 'bg-blue-50 ring-2 ring-blue-500 ring-inset',
                               isDragTarget && 'hover:bg-blue-50',
@@ -780,15 +786,22 @@ export default function HomePage() {
                             onDragOver={(e) => e.preventDefault()}
                             onDrop={() => handleDrop(day)}
                           >
-                            {/* Date number */}
-                            <div className={cn(
-                              'text-sm font-medium mb-1.5 w-7 h-7 rounded-full flex items-center justify-center',
-                              isToday(day) && 'bg-blue-500 text-white shadow-lg shadow-blue-500/30',
-                              !isToday(day) && isCurrentMonth && 'text-gray-700',
-                              !isCurrentMonth && 'text-gray-400',
-                              isSelected && !isToday(day) && 'bg-blue-100 text-blue-600'
-                            )}>
-                              {format(day, 'd')}
+                            {/* Date number and +N on same row */}
+                            <div className="flex items-center justify-between mb-1">
+                              <div className={cn(
+                                'text-sm font-medium w-6 h-6 rounded-full flex items-center justify-center',
+                                isToday(day) && 'bg-blue-500 text-white shadow-lg shadow-blue-500/30',
+                                !isToday(day) && isCurrentMonth && 'text-gray-700',
+                                !isCurrentMonth && 'text-gray-400',
+                                isSelected && !isToday(day) && 'bg-blue-100 text-blue-600'
+                              )}>
+                                {format(day, 'd')}
+                              </div>
+                              {allItems.length > 3 && (
+                                <span className="text-xs text-gray-400">
+                                  +{allItems.length - 3}
+                                </span>
+                              )}
                             </div>
                             
                             {/* Events & Todos - 按优先级排序显示前3个 */}
@@ -797,8 +810,8 @@ export default function HomePage() {
                                 <div
                                   key={item.id}
                                   className={cn(
-                                    'text-xs px-2 py-1 rounded-md truncate',
-                                    item.type === 'event' ? 'bg-sky-100 text-sky-700 border border-sky-200' :
+                                    'text-xs px-1.5 py-0.5 rounded truncate',
+                                    item.type === 'event' ? 'bg-sky-100 text-sky-700' :
                                     item.priority === 'urgent' ? 'bg-red-100 text-red-600' :
                                     item.priority === 'high' ? 'bg-orange-100 text-orange-600' :
                                     item.priority === 'medium' ? 'bg-amber-100 text-amber-600' :
@@ -809,18 +822,12 @@ export default function HomePage() {
                                   {item.title}
                                 </div>
                               ))}
-                              
-                              {allItems.length > 3 && (
-                                <div className="text-xs text-gray-400 px-2">
-                                  +{allItems.length - 3} 更多
-                                </div>
-                              )}
                             </div>
                           </div>
                         );
                       })}
                     </div>
-                  </>
+                  </div>
                 )}
                 
                 {calendarViewType === 'week' && (
