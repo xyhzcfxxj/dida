@@ -38,6 +38,12 @@ export const todos = pgTable(
     priority: varchar("priority", { length: 20 }).notNull().default("medium"), // low, medium, high, urgent
     status: varchar("status", { length: 20 }).notNull().default("pending"), // pending, in_progress, completed, cancelled
     due_date: timestamp("due_date", { withTimezone: true }),
+    // 开始时间（用于日程安排）
+    start_time: timestamp("start_time", { withTimezone: true }),
+    // 结束时间（用于日程安排）
+    end_time: timestamp("end_time", { withTimezone: true }),
+    // 是否全天事件
+    is_all_day: boolean("is_all_day").notNull().default(false),
     reminder_time: timestamp("reminder_time", { withTimezone: true }),
     is_completed: boolean("is_completed").notNull().default(false),
     completed_at: timestamp("completed_at", { withTimezone: true }),
@@ -51,6 +57,7 @@ export const todos = pgTable(
     index("todos_status_idx").on(table.status),
     index("todos_priority_idx").on(table.priority),
     index("todos_due_date_idx").on(table.due_date),
+    index("todos_start_time_idx").on(table.start_time),
     index("todos_is_completed_idx").on(table.is_completed),
     index("todos_user_status_idx").on(table.user_id, table.status),
   ]

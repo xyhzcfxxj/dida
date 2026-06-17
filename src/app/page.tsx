@@ -67,6 +67,9 @@ interface Todo {
   priority: string;
   status: string;
   due_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  is_all_day: boolean;
   reminder_time: string | null;
   is_completed: boolean;
   created_at: string;
@@ -632,16 +635,27 @@ export default function TodoPage() {
                           )}
                           
                           <div className="flex items-center gap-4 text-xs text-slate-400">
-                            {todo.due_date && (
+                            {todo.start_time && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {todo.is_all_day 
+                                  ? format(new Date(todo.start_time), 'yyyy-MM-dd', { locale: zhCN })
+                                  : format(new Date(todo.start_time), 'yyyy-MM-dd HH:mm', { locale: zhCN })
+                                }
+                              </span>
+                            )}
+                            {!todo.start_time && todo.due_date && (
                               <span className="flex items-center gap-1">
                                 <Calendar className="h-3 w-3" />
                                 {format(new Date(todo.due_date), 'yyyy-MM-dd', { locale: zhCN })}
                               </span>
                             )}
-                            <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              {format(new Date(todo.created_at), 'MM-dd HH:mm', { locale: zhCN })}
-                            </span>
+                            {!todo.start_time && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {format(new Date(todo.created_at), 'MM-dd HH:mm', { locale: zhCN })}
+                              </span>
+                            )}
                             {todo.status === 'in_progress' && (
                               <Badge variant="outline" className="text-xs">
                                 {statusLabels[todo.status]}
