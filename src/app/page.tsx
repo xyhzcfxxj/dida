@@ -825,11 +825,13 @@ export default function HomePage() {
                 
                 {calendarViewType === 'week' && (
                   <>
-                    {/* Week headers */}
-                    <div className="grid grid-cols-7 bg-gray-50">
+                    {/* Week headers - aligned with grid */}
+                    <div className="grid grid-cols-8 bg-gray-50 border-b border-gray-200">
+                      {/* Empty cell for time column alignment */}
+                      <div className="bg-gray-50 border-r border-gray-100" />
                       {weekDays.map((day, i) => (
                         <div key={day.toISOString()} className={cn(
-                          'text-center py-3 border-b',
+                          'text-center py-3 border-r border-gray-100',
                           i === 0 || i === 6 ? 'bg-red-50' : '',
                           isToday(day) ? 'bg-blue-50' : ''
                         )}>
@@ -850,10 +852,10 @@ export default function HomePage() {
                     </div>
                     
                     {/* Week grid with time slots */}
-                    <div className="flex-1 overflow-auto">
-                      <div className="grid grid-cols-8 min-h-[600px]">
+                    <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+                      <div className="grid grid-cols-8">
                         {/* Time column */}
-                        <div className="bg-gray-50 border-r border-gray-100">
+                        <div className="bg-gray-50 border-r border-gray-100 sticky left-0 z-10">
                           {timeSlots.map(hour => (
                             <div key={hour} className="h-[60px] text-xs text-gray-400 text-right pr-2 pt-1 border-b border-gray-100">
                               {hour.toString().padStart(2, '0')}:00
@@ -900,7 +902,7 @@ export default function HomePage() {
                 )}
                 
                 {calendarViewType === 'day' && (
-                  <div className="flex-1 overflow-auto">
+                  <>
                     {/* Day header */}
                     <div className="p-4 bg-gray-50 border-b border-gray-100">
                       <div className="flex items-center justify-between">
@@ -919,30 +921,31 @@ export default function HomePage() {
                       </div>
                     </div>
                     
-                    {/* Day time slots */}
-                    <div className="relative">
-                      {timeSlots.map(hour => (
-                        <div key={hour} className="flex h-[80px] border-b border-gray-100">
-                          <div className="w-[80px] text-xs text-gray-400 text-right pr-3 pt-2 bg-gray-50">
-                            {hour.toString().padStart(2, '0')}:00
+                    {/* Day time slots - fixed height to prevent infinite scroll */}
+                    <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+                      <div className="relative">
+                        {timeSlots.map(hour => (
+                          <div key={hour} className="flex h-[60px] border-b border-gray-100">
+                            <div className="w-[80px] text-xs text-gray-400 text-right pr-3 pt-2 bg-gray-50">
+                              {hour.toString().padStart(2, '0')}:00
+                            </div>
+                            <div className="flex-1 hover:bg-gray-50 cursor-pointer"
+                              onClick={() => setViewingDate(currentDay)}
+                              onDragOver={(e) => e.preventDefault()}
+                              onDrop={() => handleDrop(currentDay)}
+                            />
                           </div>
-                          <div className="flex-1 hover:bg-gray-50 cursor-pointer"
-                            onClick={() => setViewingDate(currentDay)}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={() => handleDrop(currentDay)}
-                          />
-                        </div>
-                      ))}
+                        ))}
                       
                       {/* Events for this day */}
                       {getEventsForDate(currentDay).map(event => {
                         const startHour = event.start_time ? parseInt(event.start_time.split(':')[0]) : 9;
-                        const topPosition = (startHour - 6) * 80 + 2;
+                        const topPosition = (startHour - 6) * 60 + 2;
                         return (
                           <div
                             key={event.id}
                             className="absolute left-[82px] right-2 px-3 py-2 rounded-lg bg-sky-100 text-sky-700 border border-sky-200 hover:bg-sky-200 cursor-pointer"
-                            style={{ top: `${topPosition}px`, height: '70px' }}
+                            style={{ top: `${topPosition}px`, height: '50px' }}
                             onClick={() => setViewingDate(currentDay)}
                           >
                             <div className="font-medium text-sm truncate">{event.title}</div>
@@ -954,8 +957,9 @@ export default function HomePage() {
                           </div>
                         );
                       })}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
