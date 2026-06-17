@@ -631,67 +631,92 @@ export default function HomePage() {
           </div>
         ) : viewMode === 'calendar' ? (
           /* Calendar View */
-          <div className="flex h-[calc(100vh-3.5rem)]">
+          <div className="flex h-[calc(100vh-3.5rem)] bg-gray-50">
             {/* Left - Calendar */}
-            <div className="flex-1 p-4 overflow-auto">
-              <Card>
-                <CardHeader className="pb-2">
+            <div className="flex-1 p-6 overflow-auto">
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                {/* Calendar Header */}
+                <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      <span>{format(currentMonth, 'yyyy年MM月', { locale: zhCN })}</span>
-                      <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-                        <ChevronRightIcon className="h-4 w-4" />
-                      </Button>
-                    </CardTitle>
-                    <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())}>
-                      今天
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {/* Week headers */}
-                  <div className="grid grid-cols-7 gap-1 mb-2">
-                    {['日', '一', '二', '三', '四', '五', '六'].map(day => (
-                      <div key={day} className="text-center text-xs font-medium text-slate-500 py-2">
-                        {day}
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                        className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </button>
+                      <div className="text-center">
+                        <h2 className="text-2xl font-bold">{format(currentMonth, 'yyyy年')}</h2>
+                        <p className="text-white/80">{format(currentMonth, 'MM月')}</p>
                       </div>
-                    ))}
+                      <button
+                        onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                        className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
+                      >
+                        <ChevronRightIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => setCurrentMonth(new Date())}
+                      className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors"
+                    >
+                      今天
+                    </button>
                   </div>
-                  
-                  {/* Calendar grid */}
-                  <div className="grid grid-cols-7 gap-1">
-                    {calendarDays.map(day => {
-                      const dayEvents = getEventsForDate(day);
-                      const dayTodos = getTodosForDate(day);
-                      const isCurrentMonth = isSameMonth(day, currentMonth);
-                      
-                      return (
-                        <div
-                          key={day.toISOString()}
-                          className={cn(
-                            'min-h-[80px] p-2 rounded-lg border transition-colors cursor-pointer',
-                            isCurrentMonth ? 'bg-white' : 'bg-slate-50',
-                            isToday(day) && 'border-blue-500 bg-blue-50',
-                            viewingDate && isSameDay(day, viewingDate) && 'ring-2 ring-blue-500',
-                            draggedTodo && 'hover:border-blue-500 hover:bg-blue-50',
-                            !isCurrentMonth && 'text-slate-400'
-                          )}
-                          onClick={() => setViewingDate(viewingDate && isSameDay(day, viewingDate) ? null : day)}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={() => handleDrop(day)}
-                        >
-                          <div className={cn('text-sm mb-1', isToday(day) && 'font-bold text-blue-600')}>
-                            {format(day, 'd')}
-                          </div>
-                          
-                          {/* Events */}
+                </div>
+                
+                {/* Week headers */}
+                <div className="grid grid-cols-7 bg-gray-50">
+                  {['日', '一', '二', '三', '四', '五', '六'].map((day, i) => (
+                    <div key={day} className={cn(
+                      'text-center text-sm font-semibold py-3',
+                      i === 0 || i === 6 ? 'text-red-400' : 'text-gray-500'
+                    )}>
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Calendar grid */}
+                <div className="grid grid-cols-7 gap-px bg-gray-200">
+                  {calendarDays.map(day => {
+                    const dayEvents = getEventsForDate(day);
+                    const dayTodos = getTodosForDate(day);
+                    const isCurrentMonth = isSameMonth(day, currentMonth);
+                    const isSelected = viewingDate && isSameDay(day, viewingDate);
+                    const isDragTarget = draggedTodo && !viewingDate;
+                    
+                    return (
+                      <div
+                        key={day.toISOString()}
+                        className={cn(
+                          'min-h-[100px] p-2 transition-all cursor-pointer',
+                          isCurrentMonth ? 'bg-white' : 'bg-gray-100',
+                          isSelected && 'bg-blue-50 ring-2 ring-blue-500 ring-inset',
+                          isDragTarget && 'hover:bg-blue-50',
+                          !isSelected && !isDragTarget && 'hover:bg-gray-50'
+                        )}
+                        onClick={() => setViewingDate(viewingDate && isSameDay(day, viewingDate) ? null : day)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={() => handleDrop(day)}
+                      >
+                        {/* Date number */}
+                        <div className={cn(
+                          'text-sm font-medium mb-1 w-7 h-7 rounded-full flex items-center justify-center',
+                          isToday(day) && 'bg-blue-500 text-white shadow-lg shadow-blue-500/30',
+                          !isToday(day) && isCurrentMonth && 'text-gray-700',
+                          !isCurrentMonth && 'text-gray-400',
+                          isSelected && !isToday(day) && 'bg-blue-100 text-blue-600'
+                        )}>
+                          {format(day, 'd')}
+                        </div>
+                        
+                        {/* Events */}
+                        <div className="space-y-1">
                           {dayEvents.slice(0, 2).map(event => (
                             <div
                               key={event.id}
-                              className="text-xs p-1 rounded bg-blue-100 text-blue-700 truncate mb-1"
+                              className="text-xs px-2 py-1 rounded-md bg-gradient-to-r from-blue-500 to-indigo-500 text-white truncate"
                               title={event.title}
                             >
                               {event.title}
@@ -699,10 +724,15 @@ export default function HomePage() {
                           ))}
                           
                           {/* Todos without events */}
-                          {dayTodos.slice(0, 1).map(todo => (
+                          {dayTodos.slice(0, 2 - dayEvents.length).map(todo => (
                             <div
                               key={todo.id}
-                              className="text-xs p-1 rounded bg-orange-100 text-orange-700 truncate"
+                              className={cn(
+                                'text-xs px-2 py-1 rounded-md truncate',
+                                todo.priority === 'urgent' ? 'bg-red-100 text-red-600' :
+                                todo.priority === 'high' ? 'bg-orange-100 text-orange-600' :
+                                'bg-amber-100 text-amber-600'
+                              )}
                               title={todo.title}
                             >
                               {todo.title}
@@ -710,128 +740,222 @@ export default function HomePage() {
                           ))}
                           
                           {/* More indicator */}
-                          {(dayEvents.length > 2 || dayTodos.length > 1) && (
-                            <div className="text-xs text-slate-500 text-center">
-                              +{dayEvents.length - 2 + Math.max(0, dayTodos.length - 1)}
+                          {(dayEvents.length + dayTodos.length > 2) && (
+                            <div className="text-xs text-gray-400 px-2">
+                              +{dayEvents.length + dayTodos.length - 2} 更多
                             </div>
                           )}
                         </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             
             {/* Right - Todo List / Date Detail */}
-            <div className="w-[350px] p-4 border-l border-slate-200 bg-white overflow-auto">
+            <div className="w-[380px] border-l border-gray-100 bg-white overflow-hidden flex flex-col">
               {viewingDate ? (
                 /* Date Detail */
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-slate-800">
-                      {format(viewingDate, 'yyyy年MM月dd日', { locale: zhCN })} 日程
-                    </h3>
-                    <Button variant="ghost" size="sm" onClick={() => setViewingDate(null)}>
-                      返回
-                    </Button>
+                <div className="flex flex-col h-full">
+                  {/* Date Header */}
+                  <div className="p-4 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                          {isToday(viewingDate) && (
+                            <span className="px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">今天</span>
+                          )}
+                          {format(viewingDate, 'M月d日', { locale: zhCN })}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {format(viewingDate, 'EEEE', { locale: zhCN })}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setViewingDate(null)}
+                        className="w-8 h-8 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center"
+                      >
+                        <X className="h-4 w-4 text-gray-500" />
+                      </button>
+                    </div>
                   </div>
                   
-                  {/* Events for selected date */}
-                  {getEventsForDate(viewingDate).map(event => (
-                    <div key={event.id} className="p-3 rounded-lg bg-blue-50 mb-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-slate-800">{event.title}</span>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setDeleteTarget({ type: 'event', id: event.id });
-                            setShowDeleteDialog(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-slate-400" />
-                        </Button>
+                  {/* Date Content */}
+                  <div className="flex-1 overflow-auto p-4">
+                    {getEventsForDate(viewingDate).length === 0 && getTodosForDate(viewingDate).length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
+                          <CalendarDays className="h-8 w-8" />
+                        </div>
+                        <p className="text-sm">暂无日程安排</p>
+                        <p className="text-xs mt-1">拖拽左侧待办到日期或点击添加</p>
                       </div>
-                      <div className="text-xs text-slate-500 mt-1">
-                        {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')}
+                    ) : (
+                      <div className="space-y-3">
+                        {/* Events for selected date */}
+                        {getEventsForDate(viewingDate).map(event => (
+                          <div key={event.id} className="group p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-md transition-all">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-gray-900">{event.title}</span>
+                              <button
+                                onClick={() => {
+                                  setDeleteTarget({ type: 'event', id: event.id });
+                                  setShowDeleteDialog(true);
+                                }}
+                                className="w-8 h-8 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Clock className="h-4 w-4" />
+                              <span>
+                                {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')}
+                              </span>
+                            </div>
+                            {event.location && (
+                              <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                                <span className="text-gray-400">📍</span>
+                                <span>{event.location}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        
+                        {/* Todos for selected date */}
+                        {getTodosForDate(viewingDate).map(todo => (
+                          <div key={todo.id} className="group p-4 rounded-xl bg-gray-50 hover:shadow-md transition-all">
+                            <div className="flex items-center gap-3">
+                              <Checkbox
+                                checked={todo.status === 'completed'}
+                                onCheckedChange={() => handleToggleComplete(todo)}
+                                className="border-2 border-gray-300"
+                              />
+                              <div className="flex-1">
+                                <span className="font-medium text-gray-800">{todo.title}</span>
+                                {todo.priority && todo.priority !== 'none' && (
+                                  <span className={cn(
+                                    'ml-2 px-2 py-0.5 text-xs rounded-full',
+                                    todo.priority === 'urgent' ? 'bg-red-100 text-red-600' :
+                                    todo.priority === 'high' ? 'bg-orange-100 text-orange-600' :
+                                    'bg-gray-100 text-gray-500'
+                                  )}>
+                                    {priorityConfig[todo.priority]?.label}
+                                  </span>
+                                )}
+                              </div>
+                              {todo.start_time && (
+                                <span className="text-xs text-gray-500">
+                                  {format(new Date(todo.start_time), 'HH:mm')}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                  ))}
-                  
-                  {/* Todos for selected date */}
-                  {getTodosForDate(viewingDate).map(todo => (
-                    <div key={todo.id} className="p-3 rounded-lg bg-orange-50 mb-2">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={todo.status === 'completed'}
-                          onCheckedChange={() => handleToggleComplete(todo)}
-                        />
-                        <span className="text-slate-800">{todo.title}</span>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {getEventsForDate(viewingDate).length === 0 && getTodosForDate(viewingDate).length === 0 && (
-                    <div className="text-center text-slate-400 py-8">
-                      暂无日程
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ) : (
                 /* Todo List */
-                <div>
-                  <h3 className="font-semibold text-slate-800 mb-4">待办事项</h3>
+                <div className="flex flex-col h-full">
+                  {/* Header */}
+                  <div className="p-4 bg-gray-50 border-b border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900">待办事项</h3>
+                      <button
+                        onClick={() => setShowTaskDialog(true)}
+                        className="px-3 py-1.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
+                      >
+                        新建
+                      </button>
+                    </div>
+                  </div>
                   
                   {/* Drag hint */}
                   {draggedTodo && (
-                    <div className="bg-blue-500 text-white px-3 py-2 rounded-lg mb-4 text-sm">
+                    <div className="mx-4 mt-4 p-3 rounded-xl bg-blue-500 text-white text-sm flex items-center gap-2">
+                      <GripHorizontal className="h-4 w-4" />
                       拖拽「{draggedTodo.title}」到日历中的日期
                     </div>
                   )}
                   
-                  {/* Incomplete todos */}
-                  {todos.filter(t => t.status !== 'completed').slice(0, 10).map(todo => (
-                    <div
-                      key={todo.id}
-                      className="p-3 rounded-lg bg-white border border-slate-200 mb-2 cursor-grab hover:shadow-md transition-shadow"
-                      draggable
-                      onDragStart={() => handleDragStart(todo)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          checked={false}
-                          onCheckedChange={() => handleToggleComplete(todo)}
-                        />
-                        <span className="text-slate-800 flex-1">{todo.title}</span>
-                        <Badge className={cn('text-xs', priorityConfig[todo.priority]?.bgColor)}>
-                          {priorityConfig[todo.priority]?.label || '普通'}
-                        </Badge>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {/* Completed todos */}
-                  {todos.filter(t => t.status === 'completed').length > 0 && (
-                    <div className="mt-4">
-                      <h4 className="text-sm text-slate-500 mb-2">已完成</h4>
-                      {todos.filter(t => t.status === 'completed').slice(0, 5).map(todo => (
-                        <div key={todo.id} className="p-2 rounded bg-slate-50 mb-1">
-                          <div className="flex items-center gap-2">
-                            <Checkbox checked onCheckedChange={() => handleToggleComplete(todo)} />
-                            <span className="text-slate-400">{todo.title}</span>
-                          </div>
+                  {/* Todo List Content */}
+                  <div className="flex-1 overflow-auto p-4">
+                    {todos.filter(t => t.status !== 'completed').length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-12 text-gray-400">
+                        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
+                          <List className="h-8 w-8" />
                         </div>
-                      ))}
-                    </div>
-                  )}
-                  
-                  {todos.length === 0 && (
-                    <div className="text-center text-slate-400 py-8">
-                      暂无待办事项
-                    </div>
-                  )}
+                        <p className="text-sm">暂无待办事项</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {todos.filter(t => t.status !== 'completed').slice(0, 15).map(todo => (
+                          <div
+                            key={todo.id}
+                            className="group p-3 rounded-xl bg-white border border-gray-100 hover:border-blue-200 hover:shadow-md cursor-grab transition-all"
+                            draggable
+                            onDragStart={() => handleDragStart(todo)}
+                            onDragEnd={handleDragEnd}
+                          >
+                            <div className="flex items-center gap-3">
+                              <Checkbox
+                                checked={false}
+                                onCheckedChange={() => handleToggleComplete(todo)}
+                                className="border-2 border-gray-300"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <span className="font-medium text-gray-700 truncate">{todo.title}</span>
+                              </div>
+                              {todo.priority && todo.priority !== 'none' && (
+                                <span className={cn(
+                                  'px-2 py-0.5 text-xs rounded-full shrink-0',
+                                  todo.priority === 'urgent' ? 'bg-red-100 text-red-600' :
+                                  todo.priority === 'high' ? 'bg-orange-100 text-orange-600' :
+                                  todo.priority === 'medium' ? 'bg-blue-100 text-blue-600' :
+                                  'bg-gray-100 text-gray-500'
+                                )}>
+                                  {priorityConfig[todo.priority]?.label}
+                                </span>
+                              )}
+                              <GripHorizontal className="h-4 w-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            {todo.due_date && (
+                              <div className="mt-2 text-xs text-gray-400 flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {isToday(new Date(todo.due_date)) ? '今天' : format(new Date(todo.due_date), 'M月d日')}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Completed todos */}
+                    {todos.filter(t => t.status === 'completed').length > 0 && (
+                      <div className="mt-6 pt-4 border-t border-gray-100">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Check className="h-4 w-4 text-green-500" />
+                          <span className="text-sm font-medium text-gray-500">已完成</span>
+                          <span className="text-xs text-gray-400">{todos.filter(t => t.status === 'completed').length}</span>
+                        </div>
+                        {todos.filter(t => t.status === 'completed').slice(0, 5).map(todo => (
+                          <div key={todo.id} className="p-2 rounded-lg bg-gray-50 mb-1">
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked
+                                onCheckedChange={() => handleToggleComplete(todo)}
+                                className="border-2 border-green-500 bg-green-500"
+                              />
+                              <span className="text-sm text-gray-400 truncate">{todo.title}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
