@@ -128,183 +128,138 @@ function parseTodoFromPrompt(prompt: string): TodoSuggestion[] {
   const currentDate = new Date();
   const currentDateString = currentDate.toISOString().split('T')[0];
   
-  // 时间关键词映射
-  const timePatterns: { pattern: RegExp; getDate: () => { date: string; startTime?: string; endTime?: string } }[] = [
-    {
-      pattern: /今天|今日/i,
-      getDate: () => ({ date: currentDateString })
-    },
-    {
-      pattern: /明天|明日/i,
-      getDate: () => {
-        const tomorrow = new Date(currentDate);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        return { date: tomorrow.toISOString().split('T')[0] };
-      }
-    },
-    {
-      pattern: /后天/i,
-      getDate: () => {
-        const day = new Date(currentDate);
-        day.setDate(day.getDate() + 2);
-        return { date: day.toISOString().split('T')[0] };
-      }
-    },
-    {
-      pattern: /下周[一二三四五六日天]/i,
-      getDate: () => {
-        const days = ['日', '一', '二', '三', '四', '五', '六'];
-        const match = prompt.match(/下周([一二三四五六日天])/i);
-        if (match) {
-          const targetDay = days.indexOf(match[1] === '天' ? '日' : match[1]);
-          const result = new Date(currentDate);
-          const currentDay = result.getDay();
-          const daysUntilTarget = (7 - currentDay + targetDay) % 7 || 7;
-          result.setDate(result.getDate() + daysUntilTarget);
-          return { date: result.toISOString().split('T')[0] };
-        }
-        return { date: currentDateString };
-      }
-    },
-    {
-      pattern: /本周[一二三四五六日天]/i,
-      getDate: () => {
-        const days = ['日', '一', '二', '三', '四', '五', '六'];
-        const match = prompt.match(/本周([一二三四五六日天])/i);
-        if (match) {
-          const targetDay = days.indexOf(match[1] === '天' ? '日' : match[1]);
-          const result = new Date(currentDate);
-          const currentDay = result.getDay();
-          const daysUntilTarget = (targetDay - currentDay + 7) % 7;
-          result.setDate(result.getDate() + daysUntilTarget);
-          return { date: result.toISOString().split('T')[0] };
-        }
-        return { date: currentDateString };
-      }
-    },
-    {
-      pattern: /(\d{1,2})月(\d{1,2})[日号]/i,
-      getDate: () => {
-        const match = prompt.match(/(\d{1,2})月(\d{1,2})[日号]/i);
-        if (match) {
-          const month = parseInt(match[1]) - 1;
-          const day = parseInt(match[2]);
-          const result = new Date(currentDate.getFullYear(), month, day);
-          return { date: result.toISOString().split('T')[0] };
-        }
-        return { date: currentDateString };
-      }
-    },
-    {
-      pattern: /(\d{4})年(\d{1,2})月(\d{1,2})[日号]/i,
-      getDate: () => {
-        const match = prompt.match(/(\d{4})年(\d{1,2})月(\d{1,2})[日号]/i);
-        if (match) {
-          const year = parseInt(match[1]);
-          const month = parseInt(match[2]) - 1;
-          const day = parseInt(match[3]);
-          const result = new Date(year, month, day);
-          return { date: result.toISOString().split('T')[0] };
-        }
-        return { date: currentDateString };
-      }
-    },
-    {
-      pattern: /(\d{1,2})[点时](:\d{1,2})?/i,
-      getDate: () => {
-        const match = prompt.match(/(\d{1,2})[点时](:\d{1,2})?/i);
-        if (match) {
-          const hour = parseInt(match[1]);
-          const minute = match[2] ? parseInt(match[2].substring(1)) : 0;
-          const startTime = `${currentDateString}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
-          const endTime = `${currentDateString}T${(hour + 1).toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
-          return { date: currentDateString, startTime, endTime };
-        }
-        return { date: currentDateString };
-      }
-    },
-    {
-      pattern: /上午|早上|早晨/i,
-      getDate: () => ({ date: currentDateString, startTime: `${currentDateString}T09:00:00`, endTime: `${currentDateString}T12:00:00` })
-    },
-    {
-      pattern: /下午|午后/i,
-      getDate: () => ({ date: currentDateString, startTime: `${currentDateString}T14:00:00`, endTime: `${currentDateString}T18:00:00` })
-    },
-    {
-      pattern: /晚上|晚间|傍晚/i,
-      getDate: () => ({ date: currentDateString, startTime: `${currentDateString}T18:00:00`, endTime: `${currentDateString}T22:00:00` })
-    },
-  ];
+  // 提取日期信息
+  let extractedDate = currentDateString;
   
-  // 提取时间信息
-  let extractedTime: { date: string; startTime?: string; endTime?: string } = { date: currentDateString };
-  
-  for (const { pattern, getDate } of timePatterns) {
-    if (pattern.test(prompt)) {
-      extractedTime = getDate();
-      break;
+  // 日期关键词解析（不使用 break，让日期和时间组合）
+  if (/今天|今日/i.test(prompt)) {
+    extractedDate = currentDateString;
+  } else if (/明天|明日/i.test(prompt)) {
+    const tomorrow = new Date(currentDate);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    extractedDate = tomorrow.toISOString().split('T')[0];
+  } else if (/后天/i.test(prompt)) {
+    const day = new Date(currentDate);
+    day.setDate(day.getDate() + 2);
+    extractedDate = day.toISOString().split('T')[0];
+  } else if (/下周[一二三四五六日天]/i.test(prompt)) {
+    const days = ['日', '一', '二', '三', '四', '五', '六'];
+    const match = prompt.match(/下周([一二三四五六日天])/i);
+    if (match) {
+      const targetDay = days.indexOf(match[1] === '天' ? '日' : match[1]);
+      const result = new Date(currentDate);
+      const currentDay = result.getDay();
+      const daysUntilTarget = (7 - currentDay + targetDay) % 7 || 7;
+      result.setDate(result.getDate() + daysUntilTarget);
+      extractedDate = result.toISOString().split('T')[0];
+    }
+  } else if (/本周[一二三四五六日天]/i.test(prompt)) {
+    const days = ['日', '一', '二', '三', '四', '五', '六'];
+    const match = prompt.match(/本周([一二三四五六日天])/i);
+    if (match) {
+      const targetDay = days.indexOf(match[1] === '天' ? '日' : match[1]);
+      const result = new Date(currentDate);
+      const currentDay = result.getDay();
+      const daysUntilTarget = (targetDay - currentDay + 7) % 7;
+      result.setDate(result.getDate() + daysUntilTarget);
+      extractedDate = result.toISOString().split('T')[0];
+    }
+  } else if (/(\d{1,2})月(\d{1,2})[日号]/i.test(prompt)) {
+    const match = prompt.match(/(\d{1,2})月(\d{1,2})[日号]/i);
+    if (match) {
+      const month = parseInt(match[1]) - 1;
+      const day = parseInt(match[2]);
+      const result = new Date(currentDate.getFullYear(), month, day);
+      extractedDate = result.toISOString().split('T')[0];
+    }
+  } else if (/(\d{4})年(\d{1,2})月(\d{1,2})[日号]/i.test(prompt)) {
+    const match = prompt.match(/(\d{4})年(\d{1,2})月(\d{1,2})[日号]/i);
+    if (match) {
+      const year = parseInt(match[1]);
+      const month = parseInt(match[2]) - 1;
+      const day = parseInt(match[3]);
+      const result = new Date(year, month, day);
+      extractedDate = result.toISOString().split('T')[0];
     }
   }
   
-  // 根据关键词生成建议
-  const keywords = prompt.toLowerCase();
+  // 提取时间段信息
+  let startTime: string | undefined;
+  let endTime: string | undefined;
   
-  if (keywords.includes('工作') || keywords.includes('项目') || keywords.includes('会议') || keywords.includes('开会')) {
-    suggestions.push({
-      title: keywords.includes('会议') ? '参加会议' : '整理工作计划',
-      description: keywords.includes('会议') ? '准时参加会议，做好会议记录' : '列出本周需要完成的工作任务',
-      priority: 'high',
-      due_date: extractedTime.date,
-      start_time: extractedTime.startTime,
-      end_time: extractedTime.endTime,
-    });
+  // 时间段关键词
+  if (/上午|早上|早晨/i.test(prompt)) {
+    startTime = `${extractedDate}T09:00:00`;
+    endTime = `${extractedDate}T12:00:00`;
+  } else if (/下午|午后/i.test(prompt)) {
+    startTime = `${extractedDate}T14:00:00`;
+    endTime = `${extractedDate}T18:00:00`;
+  } else if (/晚上|晚间|傍晚/i.test(prompt)) {
+    startTime = `${extractedDate}T18:00:00`;
+    endTime = `${extractedDate}T22:00:00`;
+  } else if (/中午|午饭/i.test(prompt)) {
+    startTime = `${extractedDate}T12:00:00`;
+    endTime = `${extractedDate}T14:00:00`;
   }
   
-  if (keywords.includes('学习') || keywords.includes('读书') || keywords.includes('复习') || keywords.includes('考试')) {
-    suggestions.push({
-      title: keywords.includes('考试') ? '准备考试' : '阅读学习资料',
-      description: keywords.includes('考试') ? '复习考试内容，做好考前准备' : '安排学习时间，完成阅读任务',
-      priority: keywords.includes('考试') ? 'urgent' : 'medium',
-      due_date: extractedTime.date,
-      start_time: extractedTime.startTime,
-      end_time: extractedTime.endTime,
-    });
+  // 具体时间点解析
+  const timeMatch = prompt.match(/(\d{1,2})[点时](\d{1,2})?分?|(\d{1,2}):(\d{1,2})/i);
+  if (timeMatch) {
+    let hour: number;
+    let minute: number;
+    
+    if (timeMatch[3] && timeMatch[4]) {
+      // 格式：HH:mm
+      hour = parseInt(timeMatch[3]);
+      minute = parseInt(timeMatch[4]);
+    } else {
+      // 格式：X点Y分 或 X点
+      hour = parseInt(timeMatch[1]);
+      minute = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+    }
+    
+    // 处理 12 小时制（下午3点 = 15点）
+    if (/下午|晚间|晚上/i.test(prompt) && hour < 12) {
+      hour += 12;
+    }
+    
+    startTime = `${extractedDate}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
+    endTime = `${extractedDate}T${(hour + 1).toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
   }
   
-  if (keywords.includes('健康') || keywords.includes('运动') || keywords.includes('健身') || keywords.includes('跑步')) {
-    suggestions.push({
-      title: keywords.includes('跑步') ? '跑步锻炼' : '锻炼身体',
-      description: '完成每日运动计划',
-      priority: 'high',
-      due_date: extractedTime.date,
-      start_time: extractedTime.startTime || `${extractedTime.date}T07:00:00`,
-      end_time: extractedTime.endTime || `${extractedTime.date}T08:00:00`,
-    });
+  // 清理标题：移除时间关键词，保留核心内容
+  let cleanTitle = prompt
+    .replace(/今天|今日|明天|明日|后天|下周[一二三四五六日天]|本周[一二三四五六日天]/gi, '')
+    .replace(/\d{4}年\d{1,2}月\d{1,2}[日号]|(\d{1,2})月(\d{1,2})[日号]/gi, '')
+    .replace(/上午|早上|早晨|下午|午后|晚上|晚间|傍晚|中午|午饭/gi, '')
+    .replace(/\d{1,2}[点时](\d{1,2})?分?|(\d{1,2}):(\d{1,2})/gi, '')
+    .trim();
+  
+  // 如果清理后的标题为空，使用原始提示的前30个字符
+  if (!cleanTitle) {
+    cleanTitle = prompt.substring(0, 30);
   }
   
-  if (keywords.includes('生活') || keywords.includes('家务') || keywords.includes('买菜') || keywords.includes('做饭')) {
-    suggestions.push({
-      title: keywords.includes('买菜') ? '买菜购物' : keywords.includes('做饭') ? '准备做饭' : '整理房间',
-      description: keywords.includes('买菜') ? '去超市购买所需食材' : keywords.includes('做饭') ? '准备食材并烹饪晚餐' : '打扫和整理生活空间',
-      priority: 'medium',
-      due_date: extractedTime.date,
-      start_time: extractedTime.startTime,
-      end_time: extractedTime.endTime,
-    });
+  // 判断优先级
+  let priority: string = 'medium';
+  if (/紧急|重要|必须|马上|立即|赶紧/i.test(prompt)) {
+    priority = 'urgent';
+  } else if (/比较重要|记得|不要忘记/i.test(prompt)) {
+    priority = 'high';
+  } else if (/有空|方便时|随意/i.test(prompt)) {
+    priority = 'low';
   }
   
-  // 如果没有匹配到特定关键词，根据提取的时间创建通用任务
-  if (suggestions.length === 0) {
-    suggestions.push({
-      title: prompt.substring(0, 50),
-      description: '根据您的提示创建的任务',
-      priority: 'medium',
-      due_date: extractedTime.date,
-      start_time: extractedTime.startTime,
-      end_time: extractedTime.endTime,
-    });
-  }
+  // 创建建议，使用清理后的标题
+  suggestions.push({
+    title: cleanTitle,
+    description: `根据您的输入"${prompt}"创建的任务`,
+    priority,
+    due_date: extractedDate,
+    start_time: startTime,
+    end_time: endTime,
+    is_all_day: !startTime,
+  });
   
   return suggestions;
 }
