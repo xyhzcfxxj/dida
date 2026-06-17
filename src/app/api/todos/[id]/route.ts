@@ -117,6 +117,13 @@ export async function DELETE(
     return NextResponse.json({ error: '认证失败' }, { status: 401 });
   }
   
+  // 先删除关联的日历日程（通过 todo_id 关联）
+  await client
+    .from('calendar_events')
+    .delete()
+    .eq('todo_id', id);
+  
+  // 再删除待办事项本身
   const { error } = await client
     .from('todos')
     .delete()

@@ -117,6 +117,22 @@ export async function DELETE(
   
   const { id } = await params;
   
+  // 先查询该日程是否有关联的待办事项
+  const { data: event } = await client
+    .from('calendar_events')
+    .select('todo_id')
+    .eq('id', id)
+    .maybeSingle();
+  
+  // 如果有待办事项关联，先删除待办
+  if (event?.todo_id) {
+    await client
+      .from('todos')
+      .delete()
+      .eq('id', event.todo_id);
+  }
+  
+  // 再删除日程本身
   const { error } = await client
     .from('calendar_events')
     .delete()
