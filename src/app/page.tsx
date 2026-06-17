@@ -413,7 +413,7 @@ export default function TodoPage() {
       const data = await res.json();
       
       if (res.ok) {
-        // 批量创建生成的待办事项
+        // 批量创建生成的待办事项，默认同步到日历
         let createdCount = 0;
         for (const suggestion of data.suggestions) {
           const createRes = await fetch('/api/todos', {
@@ -426,6 +426,11 @@ export default function TodoPage() {
               title: suggestion.title,
               description: suggestion.description,
               priority: suggestion.priority || 'medium',
+              due_date: suggestion.due_date,
+              start_time: suggestion.start_time,
+              end_time: suggestion.end_time,
+              is_all_day: suggestion.is_all_day || false,
+              sync_to_calendar: true, // AI 生成的待办默认同步到日历
             }),
           });
           if (createRes.ok) {
