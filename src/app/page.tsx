@@ -122,7 +122,7 @@ export default function HomePage() {
       });
       if (response.ok) {
         const data = await response.json();
-        setTodos(data.todos || []);
+        setTodos(Array.isArray(data) ? data : data.todos || []);
       }
     } catch (error) {
       console.error('获取待办列表失败:', error);
@@ -149,7 +149,7 @@ export default function HomePage() {
       });
       if (response.ok) {
         const data = await response.json();
-        setEvents(data.events || []);
+        setEvents(Array.isArray(data) ? data : data.events || []);
       }
     } catch (error) {
       console.error('获取日程失败:', error);
