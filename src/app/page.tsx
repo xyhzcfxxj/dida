@@ -741,7 +741,7 @@ export default function HomePage() {
                     <div className="grid grid-cols-7 bg-gray-50">
                       {['日', '一', '二', '三', '四', '五', '六'].map((day, i) => (
                         <div key={day} className={cn(
-                          'text-center text-sm font-semibold py-3',
+                          'text-center text-xs font-medium py-1.5',
                           i === 0 || i === 6 ? 'text-red-400' : 'text-gray-500'
                         )}>
                           {day}
@@ -758,11 +758,19 @@ export default function HomePage() {
                         const isSelected = viewingDate && isSameDay(day, viewingDate);
                         const isDragTarget = draggedTodo && !viewingDate;
                         
+                        // 合并事件和待办，按优先级排序（紧急 > 高 > 中/事件 > 低）
+                        const priorityOrder: Record<string, number> = { urgent: 0, high: 1, medium: 2, event: 2, low: 3 };
+                        const allItems = [
+                          ...dayEvents.map(e => ({ ...e, type: 'event' as const, priority: 'event' })),
+                          ...dayTodos.map(t => ({ ...t, type: 'todo' as const, priority: t.priority || 'medium' }))
+                        ].sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+                        const displayItems = allItems.slice(0, 3);
+                        
                         return (
                           <div
                             key={day.toISOString()}
                             className={cn(
-                              'min-h-[100px] p-2 transition-all cursor-pointer',
+                              'min-h-[120px] p-2 transition-all cursor-pointer',
                               isCurrentMonth ? 'bg-white' : 'bg-gray-100',
                               isSelected && 'bg-blue-50 ring-2 ring-blue-500 ring-inset',
                               isDragTarget && 'hover:bg-blue-50',
@@ -774,7 +782,7 @@ export default function HomePage() {
                           >
                             {/* Date number */}
                             <div className={cn(
-                              'text-sm font-medium mb-1 w-7 h-7 rounded-full flex items-center justify-center',
+                              'text-sm font-medium mb-1.5 w-7 h-7 rounded-full flex items-center justify-center',
                               isToday(day) && 'bg-blue-500 text-white shadow-lg shadow-blue-500/30',
                               !isToday(day) && isCurrentMonth && 'text-gray-700',
                               !isCurrentMonth && 'text-gray-400',
@@ -783,36 +791,28 @@ export default function HomePage() {
                               {format(day, 'd')}
                             </div>
                             
-                            {/* Events */}
+                            {/* Events & Todos - 按优先级排序显示前3个 */}
                             <div className="space-y-1">
-                              {dayEvents.slice(0, 2).map(event => (
+                              {displayItems.map(item => (
                                 <div
-                                  key={event.id}
-                                  className="text-xs px-2 py-1 rounded-md bg-sky-100 text-sky-700 border border-sky-200 truncate"
-                                  title={event.title}
-                                >
-                                  {event.title}
-                                </div>
-                              ))}
-                              
-                              {dayTodos.slice(0, 2 - dayEvents.length).map(todo => (
-                                <div
-                                  key={todo.id}
+                                  key={item.id}
                                   className={cn(
                                     'text-xs px-2 py-1 rounded-md truncate',
-                                    todo.priority === 'urgent' ? 'bg-red-100 text-red-600' :
-                                    todo.priority === 'high' ? 'bg-orange-100 text-orange-600' :
-                                    'bg-amber-100 text-amber-600'
+                                    item.type === 'event' ? 'bg-sky-100 text-sky-700 border border-sky-200' :
+                                    item.priority === 'urgent' ? 'bg-red-100 text-red-600' :
+                                    item.priority === 'high' ? 'bg-orange-100 text-orange-600' :
+                                    item.priority === 'medium' ? 'bg-amber-100 text-amber-600' :
+                                    'bg-gray-100 text-gray-500'
                                   )}
-                                  title={todo.title}
+                                  title={item.title}
                                 >
-                                  {todo.title}
+                                  {item.title}
                                 </div>
                               ))}
                               
-                              {(dayEvents.length + dayTodos.length > 2) && (
+                              {allItems.length > 3 && (
                                 <div className="text-xs text-gray-400 px-2">
-                                  +{dayEvents.length + dayTodos.length - 2} 更多
+                                  +{allItems.length - 3} 更多
                                 </div>
                               )}
                             </div>
