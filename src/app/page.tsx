@@ -259,6 +259,17 @@ export default function HomePage() {
     });
   };
   
+  // Get priority value for sorting (lower = more urgent)
+  const getPriorityValue = (priority: string | null): number => {
+    switch (priority) {
+      case 'urgent': return 0;
+      case 'high': return 1;
+      case 'medium': return 2;
+      case 'low': return 3;
+      default: return 4;
+    }
+  };
+  
   // Task operations
   const handleAddTask = async () => {
     if (!newTaskTitle.trim()) return;
@@ -1013,62 +1024,78 @@ export default function HomePage() {
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {/* Events for selected date */}
-                        {getEventsForDate(viewingDate).map(event => (
-                          <div key={event.id} className="group flex items-center gap-3 p-3 rounded-xl bg-sky-50 border border-sky-100 hover:bg-sky-100 transition-all">
-                            <div className="w-2 h-8 rounded-full bg-sky-400" />
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium text-gray-800 truncate">{event.title}</span>
-                                <button
-                                  onClick={() => {
-                                    setDeleteTarget({ type: 'event', id: event.id });
-                                    setShowDeleteDialog(true);
-                                  }}
-                                  className="w-6 h-6 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                <Clock className="h-3.5 w-3.5" />
-                                <span>
-                                  {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                        
-                        {/* Todos for selected date */}
-                        {getTodosForDate(viewingDate).map(todo => (
-                          <div key={todo.id} className="group flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-all">
-                            <Checkbox
-                              checked={todo.status === 'completed'}
-                              onCheckedChange={() => handleToggleComplete(todo)}
-                              className={cn(
-                                'w-5 h-5 rounded-md border-2',
-                                todo.priority === 'urgent' ? 'border-red-400 data-[state=checked]:bg-red-500' :
-                                todo.priority === 'high' ? 'border-orange-400 data-[state=checked]:bg-orange-500' :
-                                todo.priority === 'medium' ? 'border-blue-400 data-[state=checked]:bg-blue-500' :
-                                'border-gray-300 data-[state=checked]:bg-gray-400'
-                              )}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <span className={cn(
-                                'font-medium truncate',
-                                todo.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-800'
-                              )}>{todo.title}</span>
-                            </div>
-                            {todo.priority && todo.priority !== 'none' && (
-                              <span className={cn(
-                                'px-2 py-0.5 text-xs rounded-full',
-                                todo.priority === 'urgent' ? 'bg-red-100 text-red-600' :
-                                todo.priority === 'high' ? 'bg-orange-100 text-orange-600' :
-                                todo.priority === 'medium' ? 'bg-blue-100 text-blue-600' :
-                                'bg-gray-100 text-gray-500'
-                              )}>
-                                {priorityConfig[todo.priority]?.label}
+                        {/* Merge and sort events and todos by priority */}
+                        {(() => {
+                          const dateEvents = getEventsForDate(viewingDate).map(event => ({
+                            ...event,
+                            type: 'event',
+                            sortPriority: 2 // events have medium priority
+                          }));
+                          const dateTodos = getTodosForDate(viewingDate).map(todo => ({
+                            ...todo,
+                            type: 'todo',
+                            sortPriority: getPriorityValue(todo.priority)
+                          }));
+                          const mergedItems = [...dateEvents, ...dateTodos].sort((a, b) => a.sortPriority - b.sortPriority);
+                          
+                          return mergedItems.map(item => {
+                            if (item.type === 'event') {
+                              const event = item as CalendarEvent & { type: 'event'; sortPriority: number };
+                              return (
+                                <div key={event.id} className="group flex items-center gap-3 p-3 rounded-xl bg-sky-50 border border-sky-100 hover:bg-sky-100 transition-all">
+                                  <div className="w-2 h-8 rounded-full bg-sky-400" />
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium text-gray-800 truncate">{event.title}</span>
+                                      <button
+                                        onClick={() => {
+                                          setDeleteTarget({ type: 'event', id: event.id });
+                                          setShowDeleteDialog(true);
+                                        }}
+                                        className="w-6 h-6 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </button>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                      <Clock className="h-3.5 w-3.5" />
+                                      <span>
+                                        {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            } else {
+                              const todo = item as Todo & { type: 'todo'; sortPriority: number };
+                              return (
+                                <div key={todo.id} className="group flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-all">
+                                  <Checkbox
+                                    checked={todo.status === 'completed'}
+                                    onCheckedChange={() => handleToggleComplete(todo)}
+                                    className={cn(
+                                      'w-5 h-5 rounded-md border-2',
+                                      todo.priority === 'urgent' ? 'border-red-400 data-[state=checked]:bg-red-500' :
+                                      todo.priority === 'high' ? 'border-orange-400 data-[state=checked]:bg-orange-500' :
+                                      todo.priority === 'medium' ? 'border-blue-400 data-[state=checked]:bg-blue-500' :
+                                      'border-gray-300 data-[state=checked]:bg-gray-400'
+                                    )}
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <span className={cn(
+                                      'font-medium truncate',
+                                      todo.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-800'
+                                    )}>{todo.title}</span>
+                                  </div>
+                                  {todo.priority && todo.priority !== 'none' && (
+                                    <span className={cn(
+                                      'px-2 py-0.5 text-xs rounded-full',
+                                      todo.priority === 'urgent' ? 'bg-red-100 text-red-600' :
+                                      todo.priority === 'high' ? 'bg-orange-100 text-orange-600' :
+                                      todo.priority === 'medium' ? 'bg-blue-100 text-blue-600' :
+                                      'bg-gray-100 text-gray-500'
+                                    )}>
+                                      {priorityConfig[todo.priority]?.label}
                               </span>
                             )}
                             {todo.start_time && (
@@ -1086,12 +1113,15 @@ export default function HomePage() {
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                        );
+                      }
+                    });
+                  })()}
                 </div>
-              ) : (
+              )}
+            </div>
+          </div>
+        ) : (
                 /* Todo List */
                 <div className="flex flex-col h-full">
                   {/* Header */}
