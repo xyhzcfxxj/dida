@@ -861,8 +861,8 @@ export default function HomePage() {
                     </div>
                     
                     {/* Week grid with time slots */}
-                    <div className="flex-1 overflow-y-auto" style={{ height: totalHeight }}>
-                      <div className="grid grid-cols-8 h-full">
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="grid grid-cols-8" style={{ height: totalHeight }}>
                         {/* Time column */}
                         <div className="bg-gray-50 border-r border-gray-100 sticky left-0 z-10">
                           {timeSlots.map(hour => (
@@ -931,8 +931,8 @@ export default function HomePage() {
                     </div>
                     
                     {/* Day time slots - fixed height to prevent infinite scroll */}
-                    <div className="overflow-y-auto" style={{ height: totalHeight }}>
-                      <div className="relative h-full">
+                    <div className="flex-1 overflow-y-auto">
+                      <div className="relative" style={{ height: totalHeight }}>
                         {timeSlots.map(hour => (
                           <div key={hour} className="flex h-[50px] border-b border-gray-100">
                             <div className="w-[80px] text-xs text-gray-400 text-right pr-3 pt-2 bg-gray-50">
