@@ -98,7 +98,12 @@ export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedListId, setSelectedListId] = useState('today');
-  const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
+  const [selectedTodoId, setSelectedTodoId] = useState<string | null>(null);
+  
+  // Editing state for detail panel
+  const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDescription, setEditDescription] = useState('');
   
   // Dialog states
   const [showTaskDialog, setShowTaskDialog] = useState(false);
@@ -784,160 +789,305 @@ export default function HomePage() {
             </div>
           </div>
         ) : (
-          /* Todo List View */
+          /* Todo List View - Three Column Layout */
           <div className="flex h-[calc(100vh-3.5rem)]">
-            {/* Left sidebar */}
-            <div className="w-[240px] border-r border-slate-200 bg-white p-4 overflow-auto">
+            {/* Left sidebar - Navigation */}
+            <div className="w-[200px] border-r border-slate-200 bg-white p-3 overflow-auto">
               {/* Smart lists */}
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-slate-500 mb-2">智能清单</h3>
+              <div className="mb-4">
+                <h3 className="text-xs font-medium text-slate-400 mb-2 px-2">智能清单</h3>
                 {smartLists.map(list => (
                   <Button
                     key={list.id}
                     variant={selectedListId === list.id ? 'secondary' : 'ghost'}
-                    className="w-full justify-start gap-2 mb-1"
-                    onClick={() => setSelectedListId(list.id)}
+                    size="sm"
+                    className="w-full justify-start gap-2 mb-1 px-2"
+                    onClick={() => {
+                      setSelectedListId(list.id);
+                      setSelectedTodoId(null);
+                    }}
                   >
                     <list.icon className="h-4 w-4" />
-                    {list.name}
+                    <span className="text-sm">{list.name}</span>
                   </Button>
                 ))}
               </div>
               
               {/* Categories */}
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-slate-500">清单分类</h3>
-                  <Button variant="ghost" size="icon" onClick={() => setShowCategoryDialog(true)}>
-                    <FolderPlus className="h-4 w-4" />
+                <div className="flex items-center justify-between mb-2 px-2">
+                  <h3 className="text-xs font-medium text-slate-400">清单分类</h3>
+                  <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => setShowCategoryDialog(true)}>
+                    <FolderPlus className="h-3 w-3" />
                   </Button>
                 </div>
                 {categories.map(cat => (
                   <Button
                     key={cat.id}
                     variant={selectedListId === cat.id ? 'secondary' : 'ghost'}
-                    className="w-full justify-start gap-2 mb-1"
-                    onClick={() => setSelectedListId(cat.id)}
+                    size="sm"
+                    className="w-full justify-start gap-2 mb-1 px-2"
+                    onClick={() => {
+                      setSelectedListId(cat.id);
+                      setSelectedTodoId(null);
+                    }}
                   >
                     <Tag className="h-4 w-4" style={{ color: cat.color }} />
-                    {cat.name}
+                    <span className="text-sm">{cat.name}</span>
                   </Button>
                 ))}
               </div>
             </div>
             
-            {/* Main content */}
-            <div className="flex-1 p-6 overflow-auto">
+            {/* Middle - Task List */}
+            <div className="w-[320px] border-r border-slate-200 bg-slate-50 overflow-auto">
               {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <listInfo.icon className="h-5 w-5" style={{ color: listInfo.color || '#3B82F6' }} />
-                  <h2 className="text-xl font-semibold text-slate-800">{listInfo.name}</h2>
-                  <Badge variant="secondary" className="ml-2">
-                    {filteredTodos.incomplete.length}
-                  </Badge>
+              <div className="p-4 bg-white border-b border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <listInfo.icon className="h-4 w-4" style={{ color: listInfo.color || '#3B82F6' }} />
+                    <h2 className="font-semibold text-slate-800">{listInfo.name}</h2>
+                    <Badge variant="secondary" className="text-xs">
+                      {filteredTodos.incomplete.length}
+                    </Badge>
+                  </div>
+                  <Button size="sm" onClick={() => setShowTaskDialog(true)} className="h-7 gap-1">
+                    <Plus className="h-3 w-3" />
+                    新建
+                  </Button>
                 </div>
-                <Button onClick={() => setShowTaskDialog(true)} className="gap-1">
-                  <Plus className="h-4 w-4" />
-                  新建任务
-                </Button>
               </div>
               
               {/* Task list */}
-              <div className="space-y-2">
+              <div className="p-3 space-y-1">
                 {filteredTodos.incomplete.map(todo => (
-                  <Card
+                  <div
                     key={todo.id}
                     className={cn(
-                      'hover:shadow-md transition-shadow',
-                      expandedTaskId === todo.id && 'ring-2 ring-blue-500'
+                      'p-3 rounded-lg cursor-pointer transition-all',
+                      selectedTodoId === todo.id
+                        ? 'bg-blue-100 border border-blue-300'
+                        : 'bg-white border border-slate-200 hover:border-blue-200'
                     )}
+                    onClick={() => {
+                      setSelectedTodoId(todo.id);
+                      setEditingTodo(todo);
+                      setEditTitle(todo.title);
+                      setEditDescription(todo.description || '');
+                    }}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <Checkbox
-                          checked={false}
-                          onCheckedChange={() => handleToggleComplete(todo)}
-                        />
-                        <div className="flex-1" onClick={() => setExpandedTaskId(expandedTaskId === todo.id ? null : todo.id)}>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-slate-800">{todo.title}</span>
-                            {todo.priority && todo.priority !== 'none' && (
-                              <Badge className={cn('text-xs', priorityConfig[todo.priority]?.bgColor)}>
-                                {priorityConfig[todo.priority]?.label}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          {/* Expanded details */}
-                          {expandedTaskId === todo.id && (
-                            <div className="mt-2 text-sm text-slate-500">
-                              {todo.description && <p className="mb-1">{todo.description}</p>}
-                              {todo.due_date && (
-                                <p className="flex items-center gap-1">
-                                  <Clock className="h-3 w-3" />
-                                  {format(new Date(todo.due_date), 'yyyy-MM-dd')}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            <DropdownMenuItem onClick={() => {
-                              setDeleteTarget({ type: 'todo', id: todo.id });
-                              setShowDeleteDialog(true);
-                            }}>
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              删除
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={false}
+                        onCheckedChange={(checked) => {
+                          if (checked) handleToggleComplete(todo);
+                        }}
+                        className="border-slate-300"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <span className={cn(
+                          'text-sm truncate',
+                          selectedTodoId === todo.id ? 'text-blue-700' : 'text-slate-700'
+                        )}>
+                          {todo.title}
+                        </span>
                       </div>
-                    </CardContent>
-                  </Card>
+                      {todo.priority && todo.priority !== 'none' && (
+                        <Badge className={cn('text-xs px-1.5', priorityConfig[todo.priority]?.bgColor)}>
+                          {priorityConfig[todo.priority]?.label}
+                        </Badge>
+                      )}
+                    </div>
+                    {todo.due_date && (
+                      <div className="mt-1 text-xs text-slate-400 flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {isToday(new Date(todo.due_date)) ? '今天' : format(new Date(todo.due_date), 'MM-dd')}
+                      </div>
+                    )}
+                  </div>
                 ))}
                 
                 {filteredTodos.incomplete.length === 0 && (
-                  <div className="text-center text-slate-400 py-12">
+                  <div className="text-center text-slate-400 py-8 text-sm">
                     暂无任务
+                  </div>
+                )}
+                
+                {/* Completed section */}
+                {filteredTodos.completed.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-slate-200">
+                    <h3 className="text-xs text-slate-500 mb-2 flex items-center gap-1 px-1">
+                      <Check className="h-3 w-3" />
+                      已完成 ({filteredTodos.completed.length})
+                    </h3>
+                    {filteredTodos.completed.slice(0, 5).map(todo => (
+                      <div
+                        key={todo.id}
+                        className={cn(
+                          'p-2 rounded-lg mb-1 cursor-pointer',
+                          selectedTodoId === todo.id ? 'bg-blue-50' : 'bg-slate-100'
+                        )}
+                        onClick={() => {
+                          setSelectedTodoId(todo.id);
+                          setEditingTodo(todo);
+                          setEditTitle(todo.title);
+                          setEditDescription(todo.description || '');
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            checked
+                            onCheckedChange={() => handleToggleComplete(todo)}
+                            className="border-slate-300"
+                          />
+                          <span className="text-sm text-slate-400 truncate">{todo.title}</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
               
-              {/* Completed section */}
-              {filteredTodos.completed.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-medium text-slate-500 mb-2 flex items-center gap-1">
-                    <Check className="h-4 w-4" />
-                    已完成 ({filteredTodos.completed.length})
-                  </h3>
-                  {filteredTodos.completed.slice(0, 10).map(todo => (
-                    <div key={todo.id} className="p-2 rounded bg-slate-50 mb-1 flex items-center gap-2">
-                      <Checkbox checked onCheckedChange={() => handleToggleComplete(todo)} />
-                      <span className="text-slate-400">{todo.title}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
               {/* Quick add */}
-              <div className="mt-6 border-t border-slate-200 pt-4">
+              <div className="p-3 bg-white border-t border-slate-200">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="快速添加任务（如：明天下午开会）"
+                    placeholder="快速添加..."
                     value={quickAddText}
                     onChange={e => setQuickAddText(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && handleQuickAdd()}
+                    className="h-8 text-sm"
                   />
-                  <Button onClick={handleQuickAdd}>添加</Button>
+                  <Button size="sm" onClick={handleQuickAdd} className="h-8">添加</Button>
                 </div>
               </div>
+            </div>
+            
+            {/* Right - Task Detail Panel */}
+            <div className="flex-1 bg-white overflow-auto">
+              {selectedTodoId && editingTodo ? (
+                <div className="p-4">
+                  {/* Top bar with checkbox and date */}
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        checked={editingTodo.status === 'completed'}
+                        onCheckedChange={() => handleToggleComplete(editingTodo)}
+                        className="border-slate-300"
+                      />
+                      {editingTodo.due_date && (
+                        <Badge variant="outline" className="gap-1 text-blue-600 border-blue-200">
+                          <Calendar className="h-3 w-3" />
+                          {isToday(new Date(editingTodo.due_date)) ? '今天' : format(new Date(editingTodo.due_date), 'yyyy-MM-dd')}
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setDeleteTarget({ type: 'todo', id: editingTodo.id });
+                          setShowDeleteDialog(true);
+                        }}
+                        className="h-8 text-slate-400 hover:text-red-500"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedTodoId(null)}
+                        className="h-8"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Title */}
+                  <div className="mb-4">
+                    <Input
+                      value={editTitle}
+                      onChange={e => setEditTitle(e.target.value)}
+                      className="text-lg font-semibold border-none shadow-none focus-visible:ring-0 px-0"
+                      placeholder="任务标题"
+                      onBlur={async () => {
+                        if (editTitle !== editingTodo.title) {
+                          const token = await getSessionToken();
+                          if (token) {
+                            await fetch(`/api/todos/${editingTodo.id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json', 'x-session': token },
+                              body: JSON.stringify({ title: editTitle }),
+                            });
+                            fetchTodos();
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                  
+                  {/* Priority and Category */}
+                  <div className="flex items-center gap-3 mb-4">
+                    {editingTodo.priority && editingTodo.priority !== 'none' && (
+                      <Badge className={cn(priorityConfig[editingTodo.priority]?.bgColor, 'gap-1')}>
+                        <Flag className="h-3 w-3" />
+                        {priorityConfig[editingTodo.priority]?.label}
+                      </Badge>
+                    )}
+                    {editingTodo.category && (
+                      <Badge variant="outline" className="gap-1" style={{ borderColor: editingTodo.category.color }}>
+                        <Tag className="h-3 w-3" style={{ color: editingTodo.category.color }} />
+                        {editingTodo.category.name}
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {/* Time info */}
+                  {editingTodo.start_time && (
+                    <div className="mb-4 p-3 rounded-lg bg-slate-50">
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <Clock className="h-4 w-4" />
+                        <span>
+                          {format(new Date(editingTodo.start_time), 'HH:mm')}
+                          {editingTodo.end_time && ` - ${format(new Date(editingTodo.end_time), 'HH:mm')}`}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Description */}
+                  <div>
+                    <h3 className="text-sm font-medium text-slate-500 mb-2">备注</h3>
+                    <Textarea
+                      value={editDescription}
+                      onChange={e => setEditDescription(e.target.value)}
+                      placeholder="添加备注..."
+                      className="min-h-[200px] resize-none border-slate-200"
+                      onBlur={async () => {
+                        if (editDescription !== (editingTodo.description || '')) {
+                          const token = await getSessionToken();
+                          if (token) {
+                            await fetch(`/api/todos/${editingTodo.id}`, {
+                              method: 'PUT',
+                              headers: { 'Content-Type': 'application/json', 'x-session': token },
+                              body: JSON.stringify({ description: editDescription }),
+                            });
+                            fetchTodos();
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* Empty state */
+                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                  <List className="h-12 w-12 mb-3" />
+                  <p className="text-sm">选择一个任务查看详情</p>
+                </div>
+              )}
             </div>
           </div>
         )}
