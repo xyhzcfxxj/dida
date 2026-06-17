@@ -580,7 +580,9 @@ export default function HomePage() {
   });
   
   // Time slots for week/day view (6:00 - 22:00)
-  const timeSlots = Array.from({ length: 16 }, (_, i) => i + 6);
+  const timeSlots = Array.from({ length: 17 }, (_, i) => i + 6); // 6点到22点，共17个时间槽
+  const slotHeight = 50; // 每个时间槽高度50px
+  const totalHeight = timeSlots.length * slotHeight; // 总高度 = 17 * 50 = 850px
 
   return (
     <AuthGuard>
@@ -860,11 +862,11 @@ export default function HomePage() {
                     
                     {/* Week grid with time slots */}
                     <div className="flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-                      <div className="grid grid-cols-8">
+                      <div className="grid grid-cols-8" style={{ height: totalHeight }}>
                         {/* Time column */}
                         <div className="bg-gray-50 border-r border-gray-100 sticky left-0 z-10">
                           {timeSlots.map(hour => (
-                            <div key={hour} className="h-[60px] text-xs text-gray-400 text-right pr-2 pt-1 border-b border-gray-100">
+                            <div key={hour} className="h-[50px] text-xs text-gray-400 text-right pr-2 pt-1 border-b border-gray-100">
                               {hour.toString().padStart(2, '0')}:00
                             </div>
                           ))}
@@ -880,7 +882,7 @@ export default function HomePage() {
                             onDrop={() => handleDrop(day)}
                           >
                             {timeSlots.map(hour => (
-                              <div key={hour} className="h-[60px] border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                              <div key={hour} className="h-[50px] border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
                                 onClick={() => setViewingDate(day)}
                               />
                             ))}
@@ -888,7 +890,7 @@ export default function HomePage() {
                             {/* Events for this day */}
                             {getEventsForDate(day).map(event => {
                               const startHour = event.start_time ? parseInt(event.start_time.split(':')[0]) : 9;
-                              const topPosition = (startHour - 6) * 60;
+                              const topPosition = (startHour - 6) * slotHeight;
                               return (
                                 <div
                                   key={event.id}
@@ -930,9 +932,9 @@ export default function HomePage() {
                     
                     {/* Day time slots - fixed height to prevent infinite scroll */}
                     <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
-                      <div className="relative">
+                      <div className="relative" style={{ height: totalHeight }}>
                         {timeSlots.map(hour => (
-                          <div key={hour} className="flex h-[60px] border-b border-gray-100">
+                          <div key={hour} className="flex h-[50px] border-b border-gray-100">
                             <div className="w-[80px] text-xs text-gray-400 text-right pr-3 pt-2 bg-gray-50">
                               {hour.toString().padStart(2, '0')}:00
                             </div>
@@ -947,7 +949,7 @@ export default function HomePage() {
                       {/* Events for this day */}
                       {getEventsForDate(currentDay).map(event => {
                         const startHour = event.start_time ? parseInt(event.start_time.split(':')[0]) : 9;
-                        const topPosition = (startHour - 6) * 60 + 2;
+                        const topPosition = (startHour - 6) * slotHeight + 2;
                         return (
                           <div
                             key={event.id}
