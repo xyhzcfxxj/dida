@@ -106,6 +106,9 @@ export default function HomePage() {
   // 拖拽状态
   const [draggedTodo, setDraggedTodo] = useState<Todo | null>(null);
   const [dropTargetDate, setDropTargetDate] = useState<Date | null>(null);
+  
+  // 日程详情模式：点击日期后显示当日详情
+  const [viewingDate, setViewingDate] = useState<Date | null>(null);
 
   // 获取待办列表
   const fetchTodos = useCallback(async () => {
@@ -513,7 +516,10 @@ export default function HomePage() {
                   ${isDropTarget ? 'bg-blue-100 ring-2 ring-blue-500 ring-inset' : ''}
                   hover:bg-slate-50
                 `}
-                onClick={() => setSelectedDate(date)}
+                onClick={() => {
+                  setSelectedDate(date);
+                  setViewingDate(date); // 点击日期后显示当日详情
+                }}
                 onDragEnter={(e) => handleDragEnter(e, date)}
                 onDragLeave={handleDragLeave}
                 onDragOver={(e) => e.preventDefault()}
@@ -649,32 +655,139 @@ export default function HomePage() {
               )}
             </div>
             
-            {/* 右侧 - 待办列表 */}
+            {/* 右侧 - 待办列表 / 日程详情 */}
             <div className="flex flex-col gap-4">
-              {/* 待办列表 */}
-              <Card className="flex-1 overflow-hidden">
-                <CardContent className="p-4 h-full flex flex-col">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Circle className="h-5 w-5 text-blue-500" />
-                      <span className="font-semibold text-slate-800">待办事项</span>
+              {viewingDate ? (
+                /* 日程详情模式 - 显示选中日期的所有日程 */
+                <Card className="flex-1 overflow-hidden">
+                  <CardContent className="p-4 h-full flex flex-col">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <CalendarDays className="h-5 w-5 text-blue-500" />
+                        <span className="font-semibold text-slate-800">
+                          {format(viewingDate, 'yyyy年MM月dd日')} 日程
+                        </span>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setViewingDate(null)}
+                        className="text-slate-500"
+                      >
+                        返回待办列表
+                      </Button>
                     </div>
-                    <Badge variant="secondary">{pendingTodos.length} 待处理</Badge>
-                  </div>
-                  
+                    
+                    {/* 当日日程列表 */}
+                    <div className="flex-1 overflow-auto space-y-2">
+                      {(() => {
+                        const dayEvents = getEventsForDate(viewingDate);
+                        const dayTodos = getTodosForDate(viewingDate);
+                        const total = dayEvents.length + dayTodos.filter(t => t.status !== 'completed').length;
+                        
+                        if (total === 0) {
+                          return (
+                            <div className="text-center py-8 text-slate-400">
+                              <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                              <p>当日暂无日程</p>
+                              <p className="text-sm mt-1">点击 AI新建 添加日程</p>
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <>
+                            {/* 日程列表 */}
+                            {dayEvents.map(event => (
+                              <div
+                                key={event.id}
+                                className="flex items-center gap-3 p-3 bg-white border rounded-lg hover:shadow-md transition-all"
+                                style={{ borderColor: event.color + '40' }}
+                              >
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: event.color }} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-slate-800 truncate">{event.title}</div>
+                                  {event.start_time && (
+                                    <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                                      <Clock className="h-3 w-3" />
+                                      {format(new Date(event.start_time), 'HH:mm')}
+                                      {event.end_time && ` - ${format(new Date(event.end_time), 'HH:mm')}`}
+                                    </div>
+                                  )}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeleteEvent(event.id)}
+                                  className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                >
+                                  删除
+                                </Button>
+                              </div>
+                            ))}
+                            
+                            {/* 待办列表（未同步到日历的） */}
+                            {dayTodos.filter(t => t.status !== 'completed').map(todo => (
+                              <div
+                                key={todo.id}
+                                className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-lg"
+                              >
+                                <Checkbox
+                                  checked={false}
+                                  onCheckedChange={() => handleToggleStatus(todo)}
+                                  className="border-2"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-medium text-slate-800 truncate">{todo.title}</div>
+                                  {todo.start_time && (
+                                    <div className="flex items-center gap-1 text-xs text-slate-500 mt-1">
+                                      <Clock className="h-3 w-3" />
+                                      {format(new Date(todo.start_time), 'HH:mm')}
+                                    </div>
+                                  )}
+                                </div>
+                                <Badge className={`${priorityColors[todo.priority as keyof typeof priorityColors]?.bg} ${priorityColors[todo.priority as keyof typeof priorityColors]?.text}`}>
+                                  {priorityColors[todo.priority as keyof typeof priorityColors]?.label}
+                                </Badge>
+                              </div>
+                            ))}
+                            
+                            <div className="text-xs text-slate-400 text-center py-2">
+                              共 {total} 项日程
+                            </div>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                /* 待办列表模式 */
+                <>
                   {/* 待办列表 */}
-                  <div className="flex-1 overflow-auto space-y-2">
-                    {isLoadingTodos ? (
-                      <div className="flex justify-center py-8">
-                        <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                  <Card className="flex-1 overflow-hidden">
+                    <CardContent className="p-4 h-full flex flex-col">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <Circle className="h-5 w-5 text-blue-500" />
+                          <span className="font-semibold text-slate-800">待办事项</span>
+                        </div>
+                        <Badge variant="secondary">{pendingTodos.length} 待处理</Badge>
                       </div>
-                    ) : pendingTodos.length === 0 ? (
-                      <div className="text-center py-8 text-slate-400">
-                        <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                        <p>暂无待办事项</p>
-                        <p className="text-sm mt-1">点击 AI新建 添加任务</p>
-                      </div>
-                    ) : (
+                      
+                      {/* 待办列表 */}
+                      <div className="flex-1 overflow-auto space-y-2">
+                        {isLoadingTodos ? (
+                          <div className="flex justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                          </div>
+                        ) : pendingTodos.length === 0 ? (
+                          <div className="text-center py-8 text-slate-400">
+                            <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p>暂无待办事项</p>
+                            <p className="text-sm mt-1">点击 AI新建 添加任务</p>
+                          </div>
+                        ) : (
                       pendingTodos.map(todo => (
                         <div
                           key={todo.id}
@@ -760,6 +873,8 @@ export default function HomePage() {
                   </div>
                 </CardContent>
               </Card>
+                </>
+              )}
             </div>
           </div>
         </main>
