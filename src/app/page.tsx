@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, isToday, addDays } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, startOfWeek, endOfWeek, isToday, addDays, subDays, addWeeks, subWeeks } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { useAuth } from '@/lib/auth-context';
 import { Loader2, Plus, Calendar, Inbox, ChevronDown, ChevronRight, Check, Flag, Clock, Tag, MoreHorizontal, Trash2, Edit, Star, Sun, List, FolderPlus, Menu, X, Home, Sparkles, CalendarDays, ChevronLeft, ChevronRight as ChevronRightIcon, GripHorizontal, Settings, LogOut } from 'lucide-react';
@@ -89,8 +89,13 @@ export default function HomePage() {
   // View mode state
   const [viewMode, setViewMode] = useState<'calendar' | 'todos'>('calendar');
   
+  // Calendar view type state
+  const [calendarViewType, setCalendarViewType] = useState<'month' | 'week' | 'day'>('month');
+  
   // Calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [currentWeekStart, setCurrentWeekStart] = useState(startOfWeek(new Date()));
+  const [currentDay, setCurrentDay] = useState(new Date());
   const [viewingDate, setViewingDate] = useState<Date | null>(null);
   
   // Todos state
@@ -567,6 +572,15 @@ export default function HomePage() {
     start: startOfWeek(startOfMonth(currentMonth)),
     end: endOfWeek(endOfMonth(currentMonth)),
   });
+  
+  // Week days for week view
+  const weekDays = eachDayOfInterval({
+    start: currentWeekStart,
+    end: endOfWeek(currentWeekStart),
+  });
+  
+  // Time slots for week/day view (6:00 - 22:00)
+  const timeSlots = Array.from({ length: 16 }, (_, i) => i + 6);
 
   return (
     <AuthGuard>
@@ -640,116 +654,306 @@ export default function HomePage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <button
-                        onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                        onClick={() => {
+                          if (calendarViewType === 'month') setCurrentMonth(subMonths(currentMonth, 1));
+                          else if (calendarViewType === 'week') setCurrentWeekStart(subWeeks(currentWeekStart, 1));
+                          else setCurrentDay(subDays(currentDay, 1));
+                        }}
                         className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
                       >
                         <ChevronLeft className="h-5 w-5" />
                       </button>
-                      <div className="text-center">
-                        <h2 className="text-2xl font-bold">{format(currentMonth, 'yyyy年')}</h2>
-                        <p className="text-white/80">{format(currentMonth, 'MM月')}</p>
+                      <div className="text-center min-w-[120px]">
+                        {calendarViewType === 'month' && (
+                          <>
+                            <h2 className="text-2xl font-bold">{format(currentMonth, 'yyyy年')}</h2>
+                            <p className="text-white/80">{format(currentMonth, 'MM月')}</p>
+                          </>
+                        )}
+                        {calendarViewType === 'week' && (
+                          <>
+                            <h2 className="text-lg font-bold">{format(currentWeekStart, 'yyyy年MM月')}</h2>
+                            <p className="text-white/80 text-sm">{format(currentWeekStart, 'd日')} - {format(endOfWeek(currentWeekStart), 'd日')}</p>
+                          </>
+                        )}
+                        {calendarViewType === 'day' && (
+                          <>
+                            <h2 className="text-2xl font-bold">{format(currentDay, 'M月d日')}</h2>
+                            <p className="text-white/80">{format(currentDay, 'EEEE', { locale: zhCN })}</p>
+                          </>
+                        )}
                       </div>
                       <button
-                        onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                        onClick={() => {
+                          if (calendarViewType === 'month') setCurrentMonth(addMonths(currentMonth, 1));
+                          else if (calendarViewType === 'week') setCurrentWeekStart(addWeeks(currentWeekStart, 1));
+                          else setCurrentDay(addDays(currentDay, 1));
+                        }}
                         className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
                       >
                         <ChevronRightIcon className="h-5 w-5" />
                       </button>
                     </div>
-                    <button
-                      onClick={() => setCurrentMonth(new Date())}
-                      className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors"
-                    >
-                      今天
-                    </button>
+                    
+                    <div className="flex items-center gap-2">
+                      {/* View Type Toggle */}
+                      <div className="flex items-center gap-1 bg-white/20 rounded-lg p-1">
+                        <button
+                          onClick={() => setCalendarViewType('month')}
+                          className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-colors', calendarViewType === 'month' ? 'bg-white text-blue-600' : 'text-white/80 hover:bg-white/10')}
+                        >
+                          月
+                        </button>
+                        <button
+                          onClick={() => setCalendarViewType('week')}
+                          className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-colors', calendarViewType === 'week' ? 'bg-white text-blue-600' : 'text-white/80 hover:bg-white/10')}
+                        >
+                          周
+                        </button>
+                        <button
+                          onClick={() => setCalendarViewType('day')}
+                          className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-colors', calendarViewType === 'day' ? 'bg-white text-blue-600' : 'text-white/80 hover:bg-white/10')}
+                        >
+                          日
+                        </button>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setCurrentMonth(new Date());
+                          setCurrentWeekStart(startOfWeek(new Date()));
+                          setCurrentDay(new Date());
+                        }}
+                        className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors"
+                      >
+                        今天
+                      </button>
+                    </div>
                   </div>
                 </div>
                 
-                {/* Week headers */}
-                <div className="grid grid-cols-7 bg-gray-50">
-                  {['日', '一', '二', '三', '四', '五', '六'].map((day, i) => (
-                    <div key={day} className={cn(
-                      'text-center text-sm font-semibold py-3',
-                      i === 0 || i === 6 ? 'text-red-400' : 'text-gray-500'
-                    )}>
-                      {day}
-                    </div>
-                  ))}
-                </div>
-                
-                {/* Calendar grid */}
-                <div className="grid grid-cols-7 gap-px bg-gray-200">
-                  {calendarDays.map(day => {
-                    const dayEvents = getEventsForDate(day);
-                    const dayTodos = getTodosForDate(day);
-                    const isCurrentMonth = isSameMonth(day, currentMonth);
-                    const isSelected = viewingDate && isSameDay(day, viewingDate);
-                    const isDragTarget = draggedTodo && !viewingDate;
-                    
-                    return (
-                      <div
-                        key={day.toISOString()}
-                        className={cn(
-                          'min-h-[100px] p-2 transition-all cursor-pointer',
-                          isCurrentMonth ? 'bg-white' : 'bg-gray-100',
-                          isSelected && 'bg-blue-50 ring-2 ring-blue-500 ring-inset',
-                          isDragTarget && 'hover:bg-blue-50',
-                          !isSelected && !isDragTarget && 'hover:bg-gray-50'
-                        )}
-                        onClick={() => setViewingDate(viewingDate && isSameDay(day, viewingDate) ? null : day)}
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={() => handleDrop(day)}
-                      >
-                        {/* Date number */}
-                        <div className={cn(
-                          'text-sm font-medium mb-1 w-7 h-7 rounded-full flex items-center justify-center',
-                          isToday(day) && 'bg-blue-500 text-white shadow-lg shadow-blue-500/30',
-                          !isToday(day) && isCurrentMonth && 'text-gray-700',
-                          !isCurrentMonth && 'text-gray-400',
-                          isSelected && !isToday(day) && 'bg-blue-100 text-blue-600'
+                {/* Calendar Content - based on view type */}
+                {calendarViewType === 'month' && (
+                  <>
+                    {/* Week headers */}
+                    <div className="grid grid-cols-7 bg-gray-50">
+                      {['日', '一', '二', '三', '四', '五', '六'].map((day, i) => (
+                        <div key={day} className={cn(
+                          'text-center text-sm font-semibold py-3',
+                          i === 0 || i === 6 ? 'text-red-400' : 'text-gray-500'
                         )}>
-                          {format(day, 'd')}
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Month grid */}
+                    <div className="grid grid-cols-7 gap-px bg-gray-200">
+                      {calendarDays.map(day => {
+                        const dayEvents = getEventsForDate(day);
+                        const dayTodos = getTodosForDate(day);
+                        const isCurrentMonth = isSameMonth(day, currentMonth);
+                        const isSelected = viewingDate && isSameDay(day, viewingDate);
+                        const isDragTarget = draggedTodo && !viewingDate;
+                        
+                        return (
+                          <div
+                            key={day.toISOString()}
+                            className={cn(
+                              'min-h-[100px] p-2 transition-all cursor-pointer',
+                              isCurrentMonth ? 'bg-white' : 'bg-gray-100',
+                              isSelected && 'bg-blue-50 ring-2 ring-blue-500 ring-inset',
+                              isDragTarget && 'hover:bg-blue-50',
+                              !isSelected && !isDragTarget && 'hover:bg-gray-50'
+                            )}
+                            onClick={() => setViewingDate(viewingDate && isSameDay(day, viewingDate) ? null : day)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={() => handleDrop(day)}
+                          >
+                            {/* Date number */}
+                            <div className={cn(
+                              'text-sm font-medium mb-1 w-7 h-7 rounded-full flex items-center justify-center',
+                              isToday(day) && 'bg-blue-500 text-white shadow-lg shadow-blue-500/30',
+                              !isToday(day) && isCurrentMonth && 'text-gray-700',
+                              !isCurrentMonth && 'text-gray-400',
+                              isSelected && !isToday(day) && 'bg-blue-100 text-blue-600'
+                            )}>
+                              {format(day, 'd')}
+                            </div>
+                            
+                            {/* Events */}
+                            <div className="space-y-1">
+                              {dayEvents.slice(0, 2).map(event => (
+                                <div
+                                  key={event.id}
+                                  className="text-xs px-2 py-1 rounded-md bg-sky-100 text-sky-700 border border-sky-200 truncate"
+                                  title={event.title}
+                                >
+                                  {event.title}
+                                </div>
+                              ))}
+                              
+                              {dayTodos.slice(0, 2 - dayEvents.length).map(todo => (
+                                <div
+                                  key={todo.id}
+                                  className={cn(
+                                    'text-xs px-2 py-1 rounded-md truncate',
+                                    todo.priority === 'urgent' ? 'bg-red-100 text-red-600' :
+                                    todo.priority === 'high' ? 'bg-orange-100 text-orange-600' :
+                                    'bg-amber-100 text-amber-600'
+                                  )}
+                                  title={todo.title}
+                                >
+                                  {todo.title}
+                                </div>
+                              ))}
+                              
+                              {(dayEvents.length + dayTodos.length > 2) && (
+                                <div className="text-xs text-gray-400 px-2">
+                                  +{dayEvents.length + dayTodos.length - 2} 更多
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+                
+                {calendarViewType === 'week' && (
+                  <>
+                    {/* Week headers */}
+                    <div className="grid grid-cols-7 bg-gray-50">
+                      {weekDays.map((day, i) => (
+                        <div key={day.toISOString()} className={cn(
+                          'text-center py-3 border-b',
+                          i === 0 || i === 6 ? 'bg-red-50' : '',
+                          isToday(day) ? 'bg-blue-50' : ''
+                        )}>
+                          <div className={cn(
+                            'text-sm font-semibold',
+                            i === 0 || i === 6 ? 'text-red-400' : 'text-gray-500'
+                          )}>
+                            {['日', '一', '二', '三', '四', '五', '六'][i]}
+                          </div>
+                          <div className={cn(
+                            'text-lg font-bold mt-1 w-8 h-8 rounded-full mx-auto flex items-center justify-center',
+                            isToday(day) && 'bg-blue-500 text-white'
+                          )}>
+                            {format(day, 'd')}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Week grid with time slots */}
+                    <div className="flex-1 overflow-auto">
+                      <div className="grid grid-cols-8 min-h-[600px]">
+                        {/* Time column */}
+                        <div className="bg-gray-50 border-r border-gray-100">
+                          {timeSlots.map(hour => (
+                            <div key={hour} className="h-[60px] text-xs text-gray-400 text-right pr-2 pt-1 border-b border-gray-100">
+                              {hour.toString().padStart(2, '0')}:00
+                            </div>
+                          ))}
                         </div>
                         
-                        {/* Events */}
-                        <div className="space-y-1">
-                          {dayEvents.slice(0, 2).map(event => (
-                            <div
-                              key={event.id}
-                              className="text-xs px-2 py-1 rounded-md bg-gradient-to-r from-blue-500 to-indigo-500 text-white truncate"
-                              title={event.title}
-                            >
-                              {event.title}
-                            </div>
-                          ))}
-                          
-                          {/* Todos without events */}
-                          {dayTodos.slice(0, 2 - dayEvents.length).map(todo => (
-                            <div
-                              key={todo.id}
-                              className={cn(
-                                'text-xs px-2 py-1 rounded-md truncate',
-                                todo.priority === 'urgent' ? 'bg-red-100 text-red-600' :
-                                todo.priority === 'high' ? 'bg-orange-100 text-orange-600' :
-                                'bg-amber-100 text-amber-600'
-                              )}
-                              title={todo.title}
-                            >
-                              {todo.title}
-                            </div>
-                          ))}
-                          
-                          {/* More indicator */}
-                          {(dayEvents.length + dayTodos.length > 2) && (
-                            <div className="text-xs text-gray-400 px-2">
-                              +{dayEvents.length + dayTodos.length - 2} 更多
-                            </div>
+                        {/* Day columns */}
+                        {weekDays.map((day, i) => (
+                          <div key={day.toISOString()} className={cn(
+                            'border-r border-gray-100 relative',
+                            i === 0 || i === 6 ? 'bg-red-50/30' : ''
                           )}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={() => handleDrop(day)}
+                          >
+                            {timeSlots.map(hour => (
+                              <div key={hour} className="h-[60px] border-b border-gray-100 hover:bg-gray-50 cursor-pointer"
+                                onClick={() => setViewingDate(day)}
+                              />
+                            ))}
+                            
+                            {/* Events for this day */}
+                            {getEventsForDate(day).map(event => {
+                              const startHour = event.start_time ? parseInt(event.start_time.split(':')[0]) : 9;
+                              const topPosition = (startHour - 6) * 60;
+                              return (
+                                <div
+                                  key={event.id}
+                                  className="absolute left-1 right-1 px-2 py-1 rounded-md bg-sky-100 text-sky-700 border border-sky-200 text-xs truncate cursor-pointer hover:bg-sky-200"
+                                  style={{ top: `${topPosition}px`, height: '50px' }}
+                                  onClick={() => setViewingDate(day)}
+                                  title={event.title}
+                                >
+                                  {event.title}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+                
+                {calendarViewType === 'day' && (
+                  <div className="flex-1 overflow-auto">
+                    {/* Day header */}
+                    <div className="p-4 bg-gray-50 border-b border-gray-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            'w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold',
+                            isToday(currentDay) ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'
+                          )}>
+                            {format(currentDay, 'd')}
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900">{format(currentDay, 'yyyy年M月d日')}</h3>
+                            <p className="text-sm text-gray-500">{format(currentDay, 'EEEE', { locale: zhCN })}</p>
+                          </div>
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                    
+                    {/* Day time slots */}
+                    <div className="relative">
+                      {timeSlots.map(hour => (
+                        <div key={hour} className="flex h-[80px] border-b border-gray-100">
+                          <div className="w-[80px] text-xs text-gray-400 text-right pr-3 pt-2 bg-gray-50">
+                            {hour.toString().padStart(2, '0')}:00
+                          </div>
+                          <div className="flex-1 hover:bg-gray-50 cursor-pointer"
+                            onClick={() => setViewingDate(currentDay)}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={() => handleDrop(currentDay)}
+                          />
+                        </div>
+                      ))}
+                      
+                      {/* Events for this day */}
+                      {getEventsForDate(currentDay).map(event => {
+                        const startHour = event.start_time ? parseInt(event.start_time.split(':')[0]) : 9;
+                        const topPosition = (startHour - 6) * 80 + 2;
+                        return (
+                          <div
+                            key={event.id}
+                            className="absolute left-[82px] right-2 px-3 py-2 rounded-lg bg-sky-100 text-sky-700 border border-sky-200 hover:bg-sky-200 cursor-pointer"
+                            style={{ top: `${topPosition}px`, height: '70px' }}
+                            onClick={() => setViewingDate(currentDay)}
+                          >
+                            <div className="font-medium text-sm truncate">{event.title}</div>
+                            {event.start_time && (
+                              <div className="text-xs text-sky-500 mt-1">
+                                {event.start_time} - {event.end_time || '待定'}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
