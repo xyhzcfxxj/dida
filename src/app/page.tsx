@@ -650,7 +650,7 @@ export default function HomePage() {
             <div className="flex-1 p-6 overflow-auto">
               <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
                 {/* Calendar Header */}
-                <div className="p-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
+                <div className="p-4 bg-white border-b border-gray-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <button
@@ -659,27 +659,27 @@ export default function HomePage() {
                           else if (calendarViewType === 'week') setCurrentWeekStart(subWeeks(currentWeekStart, 1));
                           else setCurrentDay(subDays(currentDay, 1));
                         }}
-                        className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
+                        className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center text-gray-600"
                       >
                         <ChevronLeft className="h-5 w-5" />
                       </button>
                       <div className="text-center min-w-[120px]">
                         {calendarViewType === 'month' && (
                           <>
-                            <h2 className="text-2xl font-bold">{format(currentMonth, 'yyyy年')}</h2>
-                            <p className="text-white/80">{format(currentMonth, 'MM月')}</p>
+                            <h2 className="text-2xl font-bold text-gray-800">{format(currentMonth, 'yyyy年')}</h2>
+                            <p className="text-gray-500">{format(currentMonth, 'MM月')}</p>
                           </>
                         )}
                         {calendarViewType === 'week' && (
                           <>
-                            <h2 className="text-lg font-bold">{format(currentWeekStart, 'yyyy年MM月')}</h2>
-                            <p className="text-white/80 text-sm">{format(currentWeekStart, 'd日')} - {format(endOfWeek(currentWeekStart), 'd日')}</p>
+                            <h2 className="text-lg font-bold text-gray-800">{format(currentWeekStart, 'yyyy年MM月')}</h2>
+                            <p className="text-gray-500 text-sm">{format(currentWeekStart, 'd日')} - {format(endOfWeek(currentWeekStart), 'd日')}</p>
                           </>
                         )}
                         {calendarViewType === 'day' && (
                           <>
-                            <h2 className="text-2xl font-bold">{format(currentDay, 'M月d日')}</h2>
-                            <p className="text-white/80">{format(currentDay, 'EEEE', { locale: zhCN })}</p>
+                            <h2 className="text-2xl font-bold text-gray-800">{format(currentDay, 'M月d日')}</h2>
+                            <p className="text-gray-500">{format(currentDay, 'EEEE', { locale: zhCN })}</p>
                           </>
                         )}
                       </div>
@@ -689,7 +689,7 @@ export default function HomePage() {
                           else if (calendarViewType === 'week') setCurrentWeekStart(addWeeks(currentWeekStart, 1));
                           else setCurrentDay(addDays(currentDay, 1));
                         }}
-                        className="w-10 h-10 rounded-xl bg-white/20 hover:bg-white/30 transition-colors flex items-center justify-center"
+                        className="w-10 h-10 rounded-xl bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center text-gray-600"
                       >
                         <ChevronRightIcon className="h-5 w-5" />
                       </button>
@@ -697,22 +697,22 @@ export default function HomePage() {
                     
                     <div className="flex items-center gap-2">
                       {/* View Type Toggle */}
-                      <div className="flex items-center gap-1 bg-white/20 rounded-lg p-1">
+                      <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
                         <button
                           onClick={() => setCalendarViewType('month')}
-                          className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-colors', calendarViewType === 'month' ? 'bg-white text-blue-600' : 'text-white/80 hover:bg-white/10')}
+                          className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-colors', calendarViewType === 'month' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-200')}
                         >
                           月
                         </button>
                         <button
                           onClick={() => setCalendarViewType('week')}
-                          className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-colors', calendarViewType === 'week' ? 'bg-white text-blue-600' : 'text-white/80 hover:bg-white/10')}
+                          className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-colors', calendarViewType === 'week' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-200')}
                         >
                           周
                         </button>
                         <button
                           onClick={() => setCalendarViewType('day')}
-                          className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-colors', calendarViewType === 'day' ? 'bg-white text-blue-600' : 'text-white/80 hover:bg-white/10')}
+                          className={cn('px-3 py-1.5 rounded-md text-sm font-medium transition-colors', calendarViewType === 'day' ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-200')}
                         >
                           日
                         </button>
@@ -723,7 +723,7 @@ export default function HomePage() {
                           setCurrentWeekStart(startOfWeek(new Date()));
                           setCurrentDay(new Date());
                         }}
-                        className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors"
+                        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-xl text-sm font-medium text-white transition-colors"
                       >
                         今天
                       </button>
