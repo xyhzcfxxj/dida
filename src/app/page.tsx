@@ -1005,72 +1005,86 @@ export default function HomePage() {
                   <div className="flex-1 overflow-auto p-4">
                     {getEventsForDate(viewingDate).length === 0 && getTodosForDate(viewingDate).length === 0 ? (
                       <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-                        <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-3">
-                          <CalendarDays className="h-8 w-8" />
+                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                          <CalendarDays className="h-6 w-6" />
                         </div>
-                        <p className="text-sm">暂无日程安排</p>
-                        <p className="text-xs mt-1">拖拽左侧待办到日期或点击添加</p>
+                        <p className="text-sm font-medium">暂无事项</p>
+                        <p className="text-xs mt-1 text-gray-400">点击日期或拖拽待办添加</p>
                       </div>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {/* Events for selected date */}
                         {getEventsForDate(viewingDate).map(event => (
-                          <div key={event.id} className="group p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-md transition-all">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-medium text-gray-900">{event.title}</span>
-                              <button
-                                onClick={() => {
-                                  setDeleteTarget({ type: 'event', id: event.id });
-                                  setShowDeleteDialog(true);
-                                }}
-                                className="w-8 h-8 rounded-lg hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-gray-500">
-                              <Clock className="h-4 w-4" />
-                              <span>
-                                {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')}
-                              </span>
-                            </div>
-                            {event.location && (
-                              <div className="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                                <span className="text-gray-400">📍</span>
-                                <span>{event.location}</span>
+                          <div key={event.id} className="group flex items-center gap-3 p-3 rounded-xl bg-sky-50 border border-sky-100 hover:bg-sky-100 transition-all">
+                            <div className="w-2 h-8 rounded-full bg-sky-400" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-gray-800 truncate">{event.title}</span>
+                                <button
+                                  onClick={() => {
+                                    setDeleteTarget({ type: 'event', id: event.id });
+                                    setShowDeleteDialog(true);
+                                  }}
+                                  className="w-6 h-6 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
                               </div>
-                            )}
+                              <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                <span>
+                                  {format(new Date(event.start_time), 'HH:mm')} - {format(new Date(event.end_time), 'HH:mm')}
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         ))}
                         
                         {/* Todos for selected date */}
                         {getTodosForDate(viewingDate).map(todo => (
-                          <div key={todo.id} className="group p-4 rounded-xl bg-gray-50 hover:shadow-md transition-all">
-                            <div className="flex items-center gap-3">
-                              <Checkbox
-                                checked={todo.status === 'completed'}
-                                onCheckedChange={() => handleToggleComplete(todo)}
-                                className="border-2 border-gray-300"
-                              />
-                              <div className="flex-1">
-                                <span className="font-medium text-gray-800">{todo.title}</span>
-                                {todo.priority && todo.priority !== 'none' && (
-                                  <span className={cn(
-                                    'ml-2 px-2 py-0.5 text-xs rounded-full',
-                                    todo.priority === 'urgent' ? 'bg-red-100 text-red-600' :
-                                    todo.priority === 'high' ? 'bg-orange-100 text-orange-600' :
-                                    'bg-gray-100 text-gray-500'
-                                  )}>
-                                    {priorityConfig[todo.priority]?.label}
-                                  </span>
-                                )}
-                              </div>
-                              {todo.start_time && (
-                                <span className="text-xs text-gray-500">
-                                  {format(new Date(todo.start_time), 'HH:mm')}
-                                </span>
+                          <div key={todo.id} className="group flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100 hover:bg-gray-50 transition-all">
+                            <Checkbox
+                              checked={todo.status === 'completed'}
+                              onCheckedChange={() => handleToggleComplete(todo)}
+                              className={cn(
+                                'w-5 h-5 rounded-md border-2',
+                                todo.priority === 'urgent' ? 'border-red-400 data-[state=checked]:bg-red-500' :
+                                todo.priority === 'high' ? 'border-orange-400 data-[state=checked]:bg-orange-500' :
+                                todo.priority === 'medium' ? 'border-blue-400 data-[state=checked]:bg-blue-500' :
+                                'border-gray-300 data-[state=checked]:bg-gray-400'
                               )}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <span className={cn(
+                                'font-medium truncate',
+                                todo.status === 'completed' ? 'text-gray-400 line-through' : 'text-gray-800'
+                              )}>{todo.title}</span>
                             </div>
+                            {todo.priority && todo.priority !== 'none' && (
+                              <span className={cn(
+                                'px-2 py-0.5 text-xs rounded-full',
+                                todo.priority === 'urgent' ? 'bg-red-100 text-red-600' :
+                                todo.priority === 'high' ? 'bg-orange-100 text-orange-600' :
+                                todo.priority === 'medium' ? 'bg-blue-100 text-blue-600' :
+                                'bg-gray-100 text-gray-500'
+                              )}>
+                                {priorityConfig[todo.priority]?.label}
+                              </span>
+                            )}
+                            {todo.start_time && (
+                              <span className="text-xs text-gray-400">
+                                {format(new Date(todo.start_time), 'HH:mm')}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => {
+                                setDeleteTarget({ type: 'todo', id: todo.id });
+                                setShowDeleteDialog(true);
+                              }}
+                              className="w-6 h-6 rounded hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
                           </div>
                         ))}
                       </div>
