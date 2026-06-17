@@ -719,9 +719,12 @@ export default function HomePage() {
                       </div>
                       <button
                         onClick={() => {
-                          setCurrentMonth(new Date());
-                          setCurrentWeekStart(startOfWeek(new Date()));
-                          setCurrentDay(new Date());
+                          const today = new Date();
+                          setCurrentMonth(today);
+                          setCurrentWeekStart(startOfWeek(today));
+                          setCurrentDay(today);
+                          setViewingDate(null); // 清空选中日期
+                          toast.success('已跳转到今天');
                         }}
                         className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-xl text-sm font-medium text-white transition-colors"
                       >
