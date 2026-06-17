@@ -113,6 +113,10 @@ export default function HomePage() {
   
   // Form states
   const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskPriority, setNewTaskPriority] = useState('medium');
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
+  const [newTaskCategoryId, setNewTaskCategoryId] = useState<string>('none');
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState('#3B82F6');
   const [aiInput, setAiInput] = useState('');
@@ -185,6 +189,27 @@ export default function HomePage() {
     fetchEvents();
   }, [fetchTodos, fetchCategories, fetchEvents]);
   
+  // Sync editingTodo when todos change
+  useEffect(() => {
+    if (selectedTodoId && editingTodo) {
+      const updatedTodo = todos.find(t => t.id === selectedTodoId);
+      if (updatedTodo) {
+        setEditingTodo(updatedTodo);
+        // Only update title/description if they haven't been edited
+        if (editTitle === editingTodo.title) {
+          setEditTitle(updatedTodo.title);
+        }
+        if (editDescription === (editingTodo.description || '')) {
+          setEditDescription(updatedTodo.description || '');
+        }
+      } else {
+        // Todo was deleted, clear selection
+        setSelectedTodoId(null);
+        setEditingTodo(null);
+      }
+    }
+  }, [todos, selectedTodoId]);
+  
   // Filter todos based on selected list
   const getFilteredTodos = () => {
     const incompleteTodos = todos.filter(t => t.status !== 'completed');
@@ -240,16 +265,29 @@ export default function HomePage() {
       const res = await fetch('/api/todos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-session': token },
-        body: JSON.stringify({ title: newTaskTitle, priority: 'medium' }),
+        body: JSON.stringify({
+          title: newTaskTitle,
+          description: newTaskDescription || null,
+          priority: newTaskPriority,
+          due_date: newTaskDueDate ? new Date(newTaskDueDate).toISOString() : null,
+          category_id: newTaskCategoryId === 'none' ? null : newTaskCategoryId,
+          sync_to_calendar: true,
+        }),
       });
       
       if (res.ok) {
         toast.success('任务创建成功');
         setNewTaskTitle('');
+        setNewTaskDescription('');
+        setNewTaskPriority('medium');
+        setNewTaskDueDate('');
+        setNewTaskCategoryId('none');
         setShowTaskDialog(false);
         fetchTodos();
+        fetchEvents();
       } else {
-        toast.error('创建失败');
+        const data = await res.json();
+        toast.error(data.error || '创建失败');
       }
     } catch {
       toast.error('创建失败');
@@ -272,6 +310,11 @@ export default function HomePage() {
       if (res.ok) {
         toast.success(todo.status === 'completed' ? '任务已恢复' : '任务已完成');
         fetchTodos();
+        // Clear editing state if the completed todo is being edited
+        if (selectedTodoId === todo.id) {
+          setSelectedTodoId(null);
+          setEditingTodo(null);
+        }
       }
     } catch {
       toast.error('操作失败');
@@ -300,6 +343,11 @@ export default function HomePage() {
         if (deleteTarget.type === 'todo') fetchTodos();
         else if (deleteTarget.type === 'category') fetchCategories();
         else if (deleteTarget.type === 'event') fetchEvents();
+        // Clear editing state if the deleted item is being edited
+        if (deleteTarget.type === 'todo' && selectedTodoId === deleteTarget.id) {
+          setSelectedTodoId(null);
+          setEditingTodo(null);
+        }
       }
     } catch {
       toast.error('删除失败');
@@ -1218,18 +1266,104 @@ export default function HomePage() {
         
         {/* Task Dialog */}
         <Dialog open={showTaskDialog} onOpenChange={setShowTaskDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>新建任务</DialogTitle>
             </DialogHeader>
-            <Input
-              placeholder="任务标题"
-              value={newTaskTitle}
-              onChange={e => setNewTaskTitle(e.target.value)}
-            />
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">任务标题</label>
+                <Input
+                  placeholder="输入任务标题"
+                  value={newTaskTitle}
+                  onChange={e => setNewTaskTitle(e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">备注</label>
+                <Textarea
+                  placeholder="添加备注（可选）"
+                  value={newTaskDescription}
+                  onChange={e => setNewTaskDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">截止日期</label>
+                <Input
+                  type="date"
+                  value={newTaskDueDate}
+                  onChange={e => setNewTaskDueDate(e.target.value)}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">优先级</label>
+                <div className="flex gap-2">
+                  {['low', 'medium', 'high', 'urgent'].map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setNewTaskPriority(p)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+                        newTaskPriority === p
+                          ? p === 'urgent' ? 'bg-red-500 text-white' :
+                            p === 'high' ? 'bg-orange-500 text-white' :
+                            p === 'medium' ? 'bg-blue-500 text-white' :
+                            'bg-gray-500 text-white'
+                          : p === 'urgent' ? 'bg-red-100 text-red-600 hover:bg-red-200' :
+                            p === 'high' ? 'bg-orange-100 text-orange-600 hover:bg-orange-200' :
+                            p === 'medium' ? 'bg-blue-100 text-blue-600 hover:bg-blue-200' :
+                            'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      )}
+                    >
+                      {priorityConfig[p]?.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-1 block">分类</label>
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => setNewTaskCategoryId('none')}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+                      newTaskCategoryId === 'none'
+                        ? 'bg-gray-500 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    )}
+                  >
+                    无分类
+                  </button>
+                  {categories.map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setNewTaskCategoryId(cat.id)}
+                      className={cn(
+                        'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
+                        newTaskCategoryId === cat.id
+                          ? 'text-white'
+                          : 'hover:opacity-80'
+                      )}
+                      style={{
+                        backgroundColor: newTaskCategoryId === cat.id ? cat.color : undefined,
+                        color: newTaskCategoryId === cat.id ? '#fff' : undefined,
+                        borderLeft: `3px solid ${cat.color}`,
+                      }}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowTaskDialog(false)}>取消</Button>
-              <Button onClick={handleAddTask}>创建</Button>
+              <Button onClick={handleAddTask} disabled={!newTaskTitle.trim()}>创建</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
