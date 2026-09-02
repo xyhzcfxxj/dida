@@ -394,9 +394,18 @@ export default function HomePage() {
     // Time parsing
     const timeMatch = input.match(/(\d+)[点时]/);
     if (timeMatch) {
-      const hour = parseInt(timeMatch[1]);
+      let hour = parseInt(timeMatch[1]);
+      // Handle afternoon/evening
+      if (input.includes('下午') || input.includes('晚上')) {
+        hour = hour < 12 ? hour + 12 : hour;
+      } else if (input.includes('上午') || input.includes('早上')) {
+        // Keep as is
+      } else if (hour < 8) {
+        // Assume afternoon if hour is small and no time period specified
+        hour = hour + 12;
+      }
       const startDate = new Date(dueDate);
-      startDate.setHours(input.includes('下午') || hour < 8 ? hour + 12 : hour, 0, 0, 0);
+      startDate.setHours(hour, 0, 0, 0);
       startTime = startDate.toISOString();
     }
     
@@ -525,7 +534,8 @@ export default function HomePage() {
     if (existingEvent) {
       // Update existing event
       const newStart = new Date(date);
-      newStart.setHours(new Date(existingEvent.start_time).getHours());
+      const existingStart = new Date(existingEvent.start_time);
+      newStart.setHours(existingStart.getHours(), existingStart.getMinutes(), 0, 0);
       
       try {
         await fetch(`/api/events/${existingEvent.id}`, {
@@ -544,13 +554,31 @@ export default function HomePage() {
     } else {
       // Create new event
       try {
+        const startDateTime = new Date(date);
+        const endDateTime = new Date(date);
+        
+        // Use todo's time if available, otherwise default to 9:00-11:00
+        if (draggedTodo.start_time) {
+          const todoStart = new Date(draggedTodo.start_time);
+          startDateTime.setHours(todoStart.getHours(), todoStart.getMinutes(), 0, 0);
+          if (draggedTodo.end_time) {
+            const todoEnd = new Date(draggedTodo.end_time);
+            endDateTime.setHours(todoEnd.getHours(), todoEnd.getMinutes(), 0, 0);
+          } else {
+            endDateTime.setHours(todoStart.getHours() + 2, todoStart.getMinutes(), 0, 0);
+          }
+        } else {
+          startDateTime.setHours(9, 0, 0, 0);
+          endDateTime.setHours(11, 0, 0, 0);
+        }
+        
         await fetch('/api/events', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-session': token },
           body: JSON.stringify({
             title: draggedTodo.title,
-            start_time: new Date(date.setHours(9, 0, 0, 0)).toISOString(),
-            end_time: new Date(date.setHours(11, 0, 0, 0)).toISOString(),
+            start_time: startDateTime.toISOString(),
+            end_time: endDateTime.toISOString(),
             todo_id: draggedTodo.id,
           }),
         });
@@ -900,7 +928,7 @@ export default function HomePage() {
                             
                             {/* Events for this day */}
                             {getEventsForDate(day).map(event => {
-                              const startHour = event.start_time ? parseInt(event.start_time.split(':')[0]) : 9;
+                              const startHour = event.start_time ? new Date(event.start_time).getHours() : 9;
                               const topPosition = (startHour - 6) * slotHeight;
                               return (
                                 <div
@@ -959,7 +987,7 @@ export default function HomePage() {
                       
                       {/* Events for this day */}
                       {getEventsForDate(currentDay).map(event => {
-                        const startHour = event.start_time ? parseInt(event.start_time.split(':')[0]) : 9;
+                        const startHour = event.start_time ? new Date(event.start_time).getHours() : 9;
                         const topPosition = (startHour - 6) * slotHeight + 2;
                         return (
                           <div
@@ -971,7 +999,7 @@ export default function HomePage() {
                             <div className="font-medium text-sm truncate">{event.title}</div>
                             {event.start_time && (
                               <div className="text-xs text-sky-500 mt-1">
-                                {event.start_time} - {event.end_time || '待定'}
+                                {format(new Date(event.start_time), 'HH:mm')} - {event.end_time ? format(new Date(event.end_time), 'HH:mm') : '待定'}
                               </div>
                             )}
                           </div>
@@ -1531,12 +1559,15 @@ export default function HomePage() {
                         if (editTitle !== editingTodo.title) {
                           const token = await getSessionToken();
                           if (token) {
-                            await fetch(`/api/todos/${editingTodo.id}`, {
+                            const res = await fetch(`/api/todos/${editingTodo.id}`, {
                               method: 'PUT',
                               headers: { 'Content-Type': 'application/json', 'x-session': token },
                               body: JSON.stringify({ title: editTitle }),
                             });
-                            fetchTodos();
+                            if (res.ok) {
+                              setEditingTodo({ ...editingTodo, title: editTitle });
+                              fetchTodos();
+                            }
                           }
                         }
                       }}
@@ -1606,12 +1637,15 @@ export default function HomePage() {
                         if (editDescription !== (editingTodo.description || '')) {
                           const token = await getSessionToken();
                           if (token) {
-                            await fetch(`/api/todos/${editingTodo.id}`, {
+                            const res = await fetch(`/api/todos/${editingTodo.id}`, {
                               method: 'PUT',
                               headers: { 'Content-Type': 'application/json', 'x-session': token },
                               body: JSON.stringify({ description: editDescription }),
                             });
-                            fetchTodos();
+                            if (res.ok) {
+                              setEditingTodo({ ...editingTodo, description: editDescription });
+                              fetchTodos();
+                            }
                           }
                         }
                       }}
