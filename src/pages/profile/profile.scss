@@ -1,0 +1,133 @@
+.profile-page {
+  padding: 0;
+  padding-bottom: 120px;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.profile-header {
+  background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
+  padding: 80px 32px 60px;
+}
+
+.user-info, .login-prompt {
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: white;
+  margin-right: 24px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+.avatar-placeholder {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  margin-right: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60px;
+}
+
+.user-detail {
+  .nickname {
+    font-size: 40px;
+    font-weight: 600;
+    color: white;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .user-id {
+    font-size: 26px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+.stats-section {
+  display: flex;
+  background: white;
+  margin: -40px 24px 24px;
+  border-radius: 16px;
+  padding: 32px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+
+  .stat-item {
+    flex: 1;
+    text-align: center;
+
+    .stat-num {
+      font-size: 40px;
+      font-weight: 700;
+      color: #1f2937;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 24px;
+      color: #6b7280;
+    }
+  }
+
+  .stat-divider {
+    width: 1px;
+    background: #f3f4f6;
+  }
+}
+
+.menu-list {
+  margin: 0 24px;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 28px 24px;
+  border-bottom: 1px solid #f3f4f6;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  .menu-icon {
+    font-size: 36px;
+    margin-right: 20px;
+  }
+
+  .menu-title {
+    flex: 1;
+    font-size: 28px;
+    color: #1f2937;
+  }
+
+  .menu-arrow {
+    font-size: 36px;
+    color: #d1d5db;
+  }
+}
+
+.logout-btn {
+  margin: 40px 24px 0;
+  background: #FEE2E2;
+  color: #DC2626;
+  border: none;
+  border-radius: 12px;
+  font-size: 30px;
+  padding: 24px 0;
+
+  &::after {
+    border: none;
+  }
+}
