@@ -2,73 +2,199 @@
   padding: 0;
   padding-bottom: 120px;
   min-height: 100vh;
-  background: #f8fafc;
+  background: #f6f8fb;
 }
 
+/* ===== 顶部渐变区 ===== */
 .profile-header {
-  background: linear-gradient(135deg, #3B82F6 0%, #6366F1 100%);
-  padding: 80px 32px 60px;
+  background: linear-gradient(160deg, #3B82F6 0%, #6D5DF1 60%, #8B5CF6 100%);
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+
+  // 装饰圆点
+  &::before {
+    content: '';
+    position: absolute;
+    top: -80px;
+    right: -80px;
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+  }
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -60px;
+    left: -60px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+  }
 }
 
-.user-info, .login-prompt {
+/* ===== 已登录：用户信息 ===== */
+.user-info {
   display: flex;
   align-items: center;
-}
-
-.avatar {
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  background: white;
-  margin-right: 24px;
-  border: 4px solid rgba(255, 255, 255, 0.3);
+  padding: 80px 40px 64px;
+  position: relative;
+  z-index: 1;
 }
 
 .avatar-placeholder {
-  width: 120px;
-  height: 120px;
+  width: 128px;
+  height: 128px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  margin-right: 24px;
+  background: rgba(255, 255, 255, 0.95);
+  margin-right: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 60px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
 }
 
 .user-detail {
+  flex: 1;
+
   .nickname {
     font-size: 40px;
-    font-weight: 600;
+    font-weight: 700;
     color: white;
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    word-break: break-all;
   }
 
   .user-id {
-    font-size: 26px;
-    color: rgba(255, 255, 255, 0.8);
+    display: inline-block;
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.18);
+    padding: 6px 20px;
+    border-radius: 999px;
   }
 }
 
+/* ===== 登录：浮起卡片 ===== */
+.login-form {
+  margin: 48px 32px 56px;
+  background: #ffffff;
+  border-radius: 28px;
+  padding: 48px 36px 40px;
+  box-shadow: 0 20px 50px rgba(59, 130, 246, 0.16);
+  position: relative;
+  z-index: 1;
+}
+
+// 顶部小图标圆标（装饰）
+.form-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.title-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 28px;
+  background: linear-gradient(150deg, #3B82F6, #8B5CF6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: #fff;
+  margin-bottom: 24px;
+  box-shadow: 0 12px 28px rgba(99, 102, 241, 0.35);
+}
+
+.form-title {
+  font-size: 40px;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+}
+
+.form-subtitle {
+  font-size: 26px;
+  color: #9ca3af;
+  text-align: center;
+  margin-top: 12px;
+}
+
+.form-input {
+  height: 92px;
+  background: #f4f6fb;
+  border-radius: 16px;
+  padding: 0 32px;
+  margin-top: 28px;
+  font-size: 30px;
+  color: #1f2937;
+  border: 2px solid transparent;
+
+  // Taro Input 没有 focus 伪类，这里用占位色统一
+  &::placeholder {
+    color: #9ca3af;
+  }
+}
+
+.login-btn {
+  margin-top: 40px;
+  height: 92px;
+  line-height: 92px;
+  background: linear-gradient(120deg, #3B82F6 0%, #6D5DF1 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 18px;
+  font-size: 32px;
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 12px 28px rgba(59, 130, 246, 0.32);
+
+  &::after {
+    border: none;
+  }
+}
+
+.switch-link {
+  display: block;
+  text-align: center;
+  color: #6D5DF1;
+  font-size: 28px;
+  margin-top: 30px;
+}
+
+.form-tip {
+  display: block;
+  text-align: center;
+  color: #b0b8c4;
+  font-size: 24px;
+  margin-top: 20px;
+}
+
+/* ===== 统计卡片 ===== */
 .stats-section {
   display: flex;
   background: white;
-  margin: -40px 24px 24px;
-  border-radius: 16px;
-  padding: 32px 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  margin: 28px 24px 24px;
+  border-radius: 20px;
+  padding: 36px 0;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
 
   .stat-item {
     flex: 1;
     text-align: center;
 
     .stat-num {
-      font-size: 40px;
+      font-size: 44px;
       font-weight: 700;
       color: #1f2937;
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 10px;
     }
 
     .stat-label {
@@ -79,22 +205,23 @@
 
   .stat-divider {
     width: 1px;
-    background: #f3f4f6;
+    background: #f0f1f5;
   }
 }
 
+/* ===== 菜单列表 ===== */
 .menu-list {
-  margin: 0 24px;
+  margin: 24px;
   background: white;
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 28px 24px;
+  padding: 30px 28px;
   border-bottom: 1px solid #f3f4f6;
 
   &:last-child {
@@ -102,8 +229,15 @@
   }
 
   .menu-icon {
-    font-size: 36px;
-    margin-right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: #f2f6ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    margin-right: 22px;
   }
 
   .menu-title {
@@ -120,12 +254,13 @@
 
 .logout-btn {
   margin: 40px 24px 0;
-  background: #FEE2E2;
-  color: #DC2626;
-  border: none;
-  border-radius: 12px;
+  background: #fff;
+  color: #ef4444;
+  border: 2px solid #fecaca;
+  border-radius: 18px;
   font-size: 30px;
-  padding: 24px 0;
+  font-weight: 600;
+  padding: 26px 0;
 
   &::after {
     border: none;

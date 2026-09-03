@@ -122,7 +122,13 @@ export default class Profile extends Component {
             </View>
           ) : (
             <View className="login-form">
-              <Text className="form-title">{registerMode ? '注册账号' : '邮箱登录'}</Text>
+              <View className="form-title-wrap">
+                <View className="title-icon">✓</View>
+                <Text className="form-title">{registerMode ? '创建账号' : '欢迎回来'}</Text>
+                <Text className="form-subtitle">
+                  {registerMode ? '注册后即可同步网页版数据' : '登录后与网页版数据同步'}
+                </Text>
+              </View>
               <Input
                 className="form-input"
                 type="text"
@@ -150,7 +156,6 @@ export default class Profile extends Component {
               >
                 {registerMode ? '已有账号？去登录' : '没有账号？去注册'}
               </Text>
-              <Text className="form-tip">登录后数据与网页版同步</Text>
             </View>
           )}
         </View>
