@@ -1,301 +1,252 @@
 import { Component } from 'react'
-import { View, Text, Input, Button, Checkbox, ScrollView } from '@tarojs/components'
+import { View, Text, Input, ScrollView, Checkbox } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { fetchTodos, createTodo, updateTodo, deleteTodo } from '../../api'
+import { getSession, signInWithEmail, signOut, clearSession } from '../../lib/supabase'
 import './todos.scss'
 
 interface Todo {
   id: string
   title: string
-  completed: boolean
   priority: 'low' | 'medium' | 'high' | 'urgent'
-  due_date: string | null
-  notes: string
-  created_at: string
-  category_id: string | null
+  status: 'pending' | 'in_progress' | 'completed'
+  due_date?: string
 }
-
-const priorities = [
-  { value: 'low', label: '低', color: '#9CA3AF' },
-  { value: 'medium', label: '中', color: '#3B82F6' },
-  { value: 'high', label: '高', color: '#F97316' },
-  { value: 'urgent', label: '紧急', color: '#EF4444' }
-]
 
 export default class Todos extends Component {
   state = {
     todos: [] as Todo[],
-    filter: 'all' as 'all' | 'today' | 'completed' | 'active',
-    showAdd: false,
-    newTitle: '',
-    newPriority: 'medium',
-    newDueDate: ''
+    newTodo: '',
+    filter: 'all' as 'all' | 'pending' | 'completed',
+    isLoggedIn: false,
+    loading: false
   }
 
   componentDidMount() {
-    this.loadTodos()
+    this.checkLoginAndLoad()
   }
 
   componentDidShow() {
-    this.loadTodos()
+    this.checkLoginAndLoad()
   }
 
-  loadTodos() {
-    const todos: Todo[] = Taro.getStorageSync('todos') || []
-    this.setState({ todos })
-  }
-
-  saveTodos(todos: Todo[]) {
-    Taro.setStorageSync('todos', todos)
-    this.setState({ todos })
-  }
-
-  getFilteredTodos() {
-    const { todos, filter } = this.state
-    const today = new Date().toISOString().split('T')[0]
-
-    switch (filter) {
-      case 'today':
-        return todos.filter(t => {
-          if (!t.due_date) return false
-          return t.due_date.split('T')[0] === today && !t.completed
-        })
-      case 'completed':
-        return todos.filter(t => t.completed)
-      case 'active':
-        return todos.filter(t => !t.completed)
-      default:
-        return todos.filter(t => !t.completed)
+  async checkLoginAndLoad() {
+    const session = await getSession()
+    if (session) {
+      this.setState({ isLoggedIn: true })
+      this.loadTodos()
+    } else {
+      this.setState({ isLoggedIn: false, todos: [] })
     }
   }
 
-  showAddDialog() {
-    this.setState({ showAdd: true, newTitle: '', newPriority: 'medium', newDueDate: '' })
+  async loadTodos() {
+    this.setState({ loading: true })
+    try {
+      const data = await fetchTodos()
+      this.setState({ todos: data })
+    } catch (err: any) {
+      console.error('加载待办失败', err)
+      Taro.showToast({ title: err.message || '加载失败', icon: 'none' })
+      const localTodos = Taro.getStorageSync('todos') || []
+      this.setState({ todos: localTodos })
+    } finally {
+      this.setState({ loading: false })
+    }
   }
 
-  hideAddDialog() {
-    this.setState({ showAdd: false })
-  }
+  async handleAdd() {
+    const { newTodo, isLoggedIn, todos } = this.state
+    if (!newTodo.trim()) return
 
-  handleTitleInput(e: any) {
-    this.setState({ newTitle: e.detail.value })
-  }
-
-  handleDateChange(e: any) {
-    this.setState({ newDueDate: e.detail.value })
-  }
-
-  selectPriority(priority: string) {
-    this.setState({ newPriority: priority })
-  }
-
-  addTodo() {
-    const { newTitle, newPriority, newDueDate, todos } = this.state
-    if (!newTitle.trim()) {
-      Taro.showToast({ title: '请输入任务标题', icon: 'none' })
+    if (!isLoggedIn) {
+      const newItem: Todo = {
+        id: Date.now().toString(),
+        title: newTodo.trim(),
+        priority: 'medium',
+        status: 'pending'
+      }
+      const updated = [newItem, ...todos]
+      this.setState({ todos: updated, newTodo: '' })
+      Taro.setStorageSync('todos', updated)
       return
     }
 
-    const newTodo: Todo = {
-      id: Date.now().toString(),
-      title: newTitle.trim(),
-      completed: false,
-      priority: newPriority as any,
-      due_date: newDueDate ? new Date(newDueDate).toISOString() : null,
-      notes: '',
-      created_at: new Date().toISOString(),
-      category_id: null
+    try {
+      const created = await createTodo({ title: newTodo.trim(), priority: 'medium', status: 'pending' })
+      this.setState((prev: any) => ({
+        todos: [created, ...prev.todos],
+        newTodo: ''
+      }))
+      Taro.showToast({ title: '已添加', icon: 'success' })
+    } catch (err: any) {
+      Taro.showToast({ title: err.message || '添加失败', icon: 'none' })
+    }
+  }
+
+  async handleToggle(id: string, currentStatus: string) {
+    const { isLoggedIn, todos } = this.state
+    const newStatus = currentStatus === 'completed' ? 'pending' : 'completed'
+
+    // 立即更新 UI
+    const updated = todos.map(t => t.id === id ? { ...t, status: newStatus as any } : t)
+    this.setState({ todos: updated })
+    if (!isLoggedIn) {
+      Taro.setStorageSync('todos', updated)
+      return
     }
 
-    const updated = [newTodo, ...todos]
-    this.saveTodos(updated)
-    this.hideAddDialog()
-    Taro.showToast({ title: '创建成功', icon: 'success' })
+    try {
+      await updateTodo(id, { status: newStatus })
+    } catch (err) {
+      // 失败回滚
+      this.setState({ todos })
+      Taro.showToast({ title: '更新失败', icon: 'none' })
+    }
   }
 
-  toggleTodo(id: string) {
-    const { todos } = this.state
-    const updated = todos.map(t =>
-      t.id === id ? { ...t, completed: !t.completed } : t
-    )
-    this.saveTodos(updated)
-  }
-
-  deleteTodo(id: string) {
+  handleDelete(id: string) {
     Taro.showModal({
-      title: '确认删除',
+      title: '删除任务',
       content: '确定要删除这个任务吗？',
-      success: (res) => {
-        if (res.confirm) {
-          const { todos } = this.state
-          const updated = todos.filter(t => t.id !== id)
-          this.saveTodos(updated)
+      success: async (res) => {
+        if (!res.confirm) return
+        const { isLoggedIn, todos } = this.state
+        const updated = todos.filter(t => t.id !== id)
+        this.setState({ todos: updated })
+
+        if (!isLoggedIn) {
+          Taro.setStorageSync('todos', updated)
+          return
+        }
+
+        try {
+          await deleteTodo(id)
           Taro.showToast({ title: '已删除', icon: 'success' })
+        } catch (err) {
+          this.setState({ todos })
+          Taro.showToast({ title: '删除失败', icon: 'none' })
         }
       }
     })
   }
 
-  getPriorityColor(priority: string) {
-    const colors: Record<string, string> = {
-      urgent: '#EF4444',
-      high: '#F97316',
-      medium: '#3B82F6',
-      low: '#9CA3AF'
-    }
-    return colors[priority] || colors.medium
+  setFilter(filter: 'all' | 'pending' | 'completed') {
+    this.setState({ filter })
   }
 
-  getPriorityBg(priority: string) {
+  getPriorityColor(priority: string) {
     const colors: Record<string, string> = {
-      urgent: '#FEF2F2',
-      high: '#FFF7ED',
-      medium: '#EFF6FF',
-      low: '#F3F4F6'
+      urgent: '#ef4444',
+      high: '#f97316',
+      medium: '#3b82f6',
+      low: '#9ca3af'
     }
-    return colors[priority] || colors.medium
+    return colors[priority] || '#9ca3af'
+  }
+
+  getPriorityLabel(priority: string) {
+    const labels: Record<string, string> = {
+      urgent: '紧急',
+      high: '高',
+      medium: '中',
+      low: '低'
+    }
+    return labels[priority] || '中'
   }
 
   render() {
-    const { filter, showAdd, newTitle, newPriority, newDueDate } = this.state
-    const filteredTodos = this.getFilteredTodos()
-
-    const filters = [
-      { value: 'all', label: '全部' },
-      { value: 'today', label: '今天' },
-      { value: 'active', label: '进行中' },
-      { value: 'completed', label: '已完成' }
-    ]
+    const { todos, newTodo, filter, loading } = this.state
+    const filteredTodos = filter === 'all'
+      ? todos
+      : filter === 'pending'
+        ? todos.filter(t => t.status !== 'completed')
+        : todos.filter(t => t.status === 'completed')
 
     return (
       <View className="todos-page">
         <View className="page-header">
           <Text className="page-title">待办清单</Text>
-          <View className="add-btn" onClick={this.showAddDialog.bind(this)}>
-            <Text className="add-icon">+</Text>
+          <Text className="page-subtitle">共 {todos.length} 个任务</Text>
+        </View>
+
+        <View className="add-section">
+          <Input
+            className="add-input"
+            type="text"
+            placeholder="添加新任务..."
+            value={newTodo}
+            onInput={(e) => this.setState({ newTodo: e.detail.value })}
+            onConfirm={() => this.handleAdd()}
+          />
+          <View className="add-btn" onClick={() => this.handleAdd()}>
+            <Text className="add-btn-text">+</Text>
           </View>
         </View>
 
-        <ScrollView scrollX className="filter-tabs">
-          {filters.map(f => (
+        <View className="filter-tabs">
+          {[
+            { key: 'all', label: '全部' },
+            { key: 'pending', label: '进行中' },
+            { key: 'completed', label: '已完成' }
+          ].map(item => (
             <View
-              key={f.value}
-              className={`filter-tab ${filter === f.value ? 'active' : ''}`}
-              onClick={() => this.setState({ filter: f.value as any })}
+              key={item.key}
+              className={`filter-tab ${filter === item.key ? 'active' : ''}`}
+              onClick={() => this.setFilter(item.key as any)}
             >
-              <Text>{f.label}</Text>
+              <Text className="filter-tab-text">{item.label}</Text>
             </View>
           ))}
-        </ScrollView>
+        </View>
 
-        <ScrollView scrollY className="todo-list">
-          {filteredTodos.length === 0 ? (
+        <ScrollView className="todo-list" scrollY>
+          {loading ? (
             <View className="empty-state">
-              <Text className="empty-icon">📋</Text>
+              <Text className="empty-icon">⏳</Text>
+              <Text className="empty-text">加载中...</Text>
+            </View>
+          ) : filteredTodos.length === 0 ? (
+            <View className="empty-state">
+              <Text className="empty-icon">📝</Text>
               <Text className="empty-text">暂无任务</Text>
+              <Text className="empty-hint">点击上方添加新任务</Text>
             </View>
           ) : (
             filteredTodos.map(todo => (
-              <View key={todo.id} className="todo-card" onLongPress={() => this.deleteTodo(todo.id)}>
+              <View key={todo.id} className="todo-item">
                 <Checkbox
-                  checked={todo.completed}
-                  onChange={() => this.toggleTodo(todo.id)}
-                  color={this.getPriorityColor(todo.priority)}
+                  className="todo-checkbox"
+                  checked={todo.status === 'completed'}
+                  onChange={() => this.handleToggle(todo.id, todo.status)}
                 />
-                <View className="todo-info">
-                  <Text className={`todo-title ${todo.completed ? 'completed' : ''}`}>
+                <View
+                  className="priority-bar"
+                  style={{ backgroundColor: this.getPriorityColor(todo.priority) }}
+                />
+                <View className="todo-content" onClick={() => this.handleDelete(todo.id)}>
+                  <Text className={`todo-title ${todo.status === 'completed' ? 'completed' : ''}`}>
                     {todo.title}
                   </Text>
-                  {todo.due_date && (
-                    <Text className="todo-due">
-                      📅 {todo.due_date.split('T')[0]}
+                  <View className="todo-meta">
+                    <Text
+                      className="priority-tag"
+                      style={{
+                        backgroundColor: this.getPriorityColor(todo.priority) + '20',
+                        color: this.getPriorityColor(todo.priority)
+                      }}
+                    >
+                      {this.getPriorityLabel(todo.priority)}
                     </Text>
-                  )}
-                </View>
-                <View
-                  className="priority-tag"
-                  style={{
-                    backgroundColor: this.getPriorityBg(todo.priority),
-                    color: this.getPriorityColor(todo.priority)
-                  }}
-                >
-                  {priorities.find(p => p.value === todo.priority)?.label}
+                    {todo.due_date && (
+                      <Text className="due-date">📅 {todo.due_date?.slice(0, 10)}</Text>
+                    )}
+                  </View>
                 </View>
               </View>
             ))
           )}
         </ScrollView>
-
-        {showAdd && (
-          <View className="modal-mask" onClick={this.hideAddDialog.bind(this)}>
-            <View className="modal-content" onClick={e => e.stopPropagation()}>
-              <Text className="modal-title">新建任务</Text>
-              <View className="add-form">
-                <View className="form-item">
-                  <Text className="form-label">任务标题</Text>
-                  <Input
-                    placeholder="请输入任务标题"
-                    value={newTitle}
-                    onInput={this.handleTitleInput.bind(this)}
-                    className="form-input"
-                  />
-                </View>
-
-                <View className="form-item">
-                  <Text className="form-label">优先级</Text>
-                  <View className="priority-options">
-                    {priorities.map(p => (
-                      <View
-                        key={p.value}
-                        className={`priority-option ${newPriority === p.value ? 'selected' : ''}`}
-                        style={{
-                          borderColor: newPriority === p.value ? p.color : '#e5e7eb',
-                          backgroundColor: newPriority === p.value ? this.getPriorityBg(p.value) : 'white',
-                          color: p.color
-                        }}
-                        onClick={() => this.selectPriority(p.value)}
-                      >
-                        {p.label}
-                      </View>
-                    ))}
-                  </View>
-                </View>
-
-                <View className="form-item">
-                  <Text className="form-label">截止日期</Text>
-                  <Input
-                    type="text"
-                    placeholder="选择截止日期"
-                    value={newDueDate}
-                    onFocus={() => {
-                      Taro.showActionSheet({
-                        itemList: ['今天', '明天', '后天', '不设置'],
-                        success: (res) => {
-                          const dates = []
-                          const today = new Date()
-                          for (let i = 0; i < 3; i++) {
-                            const d = new Date(today)
-                            d.setDate(today.getDate() + i)
-                            dates.push(d.toISOString().split('T')[0])
-                          }
-                          if (res.tapIndex < 3) {
-                            this.setState({ newDueDate: dates[res.tapIndex] })
-                          } else {
-                            this.setState({ newDueDate: '' })
-                          }
-                        }
-                      })
-                    }}
-                    className="form-input"
-                  />
-                </View>
-              </View>
-              <View className="modal-actions">
-                <Button className="modal-btn cancel" onClick={this.hideAddDialog.bind(this)}>取消</Button>
-                <Button className="modal-btn confirm" onClick={this.addTodo.bind(this)}>确定</Button>
-              </View>
-            </View>
-          </View>
-        )}
       </View>
     )
   }

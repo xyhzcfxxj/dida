@@ -1,169 +1,253 @@
 import { Component } from 'react'
 import { View, Text, ScrollView } from '@tarojs/components'
 import Taro from '@tarojs/taro'
+import { fetchTodos, fetchEvents } from '../../api'
+import { getSession } from '../../lib/supabase'
 import './calendar.scss'
 
 interface Todo {
   id: string
   title: string
-  completed: boolean
   priority: string
-  due_date: string | null
+  status: string
+  due_date?: string
 }
 
-export default class CalendarPage extends Component {
+interface CalendarEvent {
+  id: string
+  title: string
+  start_time: string
+  end_time: string
+}
+
+export default class Calendar extends Component {
   state = {
-    currentYear: new Date().getFullYear(),
-    currentMonth: new Date().getMonth(),
-    selectedDate: new Date().toISOString().split('T')[0],
-    todos: [] as Todo[]
+    currentMonth: new Date(),
+    selectedDate: new Date(),
+    todos: [] as Todo[],
+    events: [] as CalendarEvent[],
+    today: new Date(),
+    isLoggedIn: false,
+    loading: false
   }
 
   componentDidMount() {
-    this.loadTodos()
+    this.checkLoginAndLoad()
   }
 
   componentDidShow() {
-    this.loadTodos()
+    this.checkLoginAndLoad()
   }
 
-  loadTodos() {
-    const todos: Todo[] = Taro.getStorageSync('todos') || []
-    this.setState({ todos })
+  async checkLoginAndLoad() {
+    const session = getSession()
+    if (session) {
+      this.setState({ isLoggedIn: true })
+      this.loadData()
+    } else {
+      this.setState({ isLoggedIn: false })
+    }
   }
 
-  getDaysInMonth(year: number, month: number) {
-    return new Date(year, month + 1, 0).getDate()
+  async loadData() {
+    this.setState({ loading: true })
+    try {
+      const [todos, events] = await Promise.all([
+        fetchTodos(),
+        this.loadMonthEvents()
+      ])
+      this.setState({ todos, events })
+    } catch (err) {
+      console.error('加载日历数据失败', err)
+    } finally {
+      this.setState({ loading: false })
+    }
   }
 
-  getFirstDayOfMonth(year: number, month: number) {
-    return new Date(year, month, 1).getDay()
+  async loadMonthEvents() {
+    const { currentMonth } = this.state
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    const start = new Date(year, month, 1).toISOString()
+    const end = new Date(year, month + 1, 0, 23, 59, 59).toISOString()
+    try {
+      return await fetchEvents(start, end)
+    } catch {
+      return []
+    }
   }
 
   prevMonth() {
-    let { currentYear, currentMonth } = this.state
-    currentMonth--
-    if (currentMonth < 0) {
-      currentMonth = 11
-      currentYear--
-    }
-    this.setState({ currentYear, currentMonth })
-  }
-
-  nextMonth() {
-    let { currentYear, currentMonth } = this.state
-    currentMonth++
-    if (currentMonth > 11) {
-      currentMonth = 0
-      currentYear++
-    }
-    this.setState({ currentYear, currentMonth })
-  }
-
-  selectDate(day: number) {
-    const { currentYear, currentMonth } = this.state
-    const date = new Date(currentYear, currentMonth, day)
+    const { currentMonth } = this.state
     this.setState({
-      selectedDate: date.toISOString().split('T')[0]
+      currentMonth: new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+    }, () => {
+      if (this.state.isLoggedIn) {
+        this.loadMonthEvents().then(events => this.setState({ events }))
+      }
     })
   }
 
-  getTodosForDate(dateStr: string) {
+  nextMonth() {
+    const { currentMonth } = this.state
+    this.setState({
+      currentMonth: new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+    }, () => {
+      if (this.state.isLoggedIn) {
+        this.loadMonthEvents().then(events => this.setState({ events }))
+      }
+    })
+  }
+
+  selectDate(day: number, isCurrentMonth: boolean) {
+    const { currentMonth } = this.state
+    const selected = isCurrentMonth
+      ? new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day)
+      : new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, day)
+    this.setState({ selectedDate: selected })
+  }
+
+  isSameDay(date1: Date, date2: Date) {
+    return date1.getFullYear() === date2.getFullYear()
+      && date1.getMonth() === date2.getMonth()
+      && date1.getDate() === date2.getDate()
+  }
+
+  getTodosForDate(date: Date) {
     const { todos } = this.state
     return todos.filter(t => {
       if (!t.due_date) return false
-      return t.due_date.split('T')[0] === dateStr
+      return this.isSameDay(new Date(t.due_date), date)
+    })
+  }
+
+  getEventsForDate(date: Date) {
+    const { events } = this.state
+    return events.filter(e => {
+      return this.isSameDay(new Date(e.start_time), date)
     })
   }
 
   getPriorityColor(priority: string) {
     const colors: Record<string, string> = {
-      urgent: '#EF4444',
-      high: '#F97316',
-      medium: '#3B82F6',
-      low: '#9CA3AF'
+      urgent: '#ef4444',
+      high: '#f97316',
+      medium: '#3b82f6',
+      low: '#9ca3af'
     }
-    return colors[priority] || colors.medium
+    return colors[priority] || '#9ca3af'
   }
 
-  isToday(day: number) {
-    const today = new Date()
-    const { currentYear, currentMonth } = this.state
-    return today.getFullYear() === currentYear &&
-           today.getMonth() === currentMonth &&
-           today.getDate() === day
+  getCalendarDays() {
+    const { currentMonth } = this.state
+    const year = currentMonth.getFullYear()
+    const month = currentMonth.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const startDayOfWeek = firstDay.getDay()
+    const totalDays = lastDay.getDate()
+
+    const days: { day: number; isCurrentMonth: boolean; date: Date }[] = []
+
+    // 上月的日期
+    const prevMonthLastDay = new Date(year, month, 0).getDate()
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      days.push({
+        day: prevMonthLastDay - i,
+        isCurrentMonth: false,
+        date: new Date(year, month - 1, prevMonthLastDay - i)
+      })
+    }
+
+    // 当月的日期
+    for (let day = 1; day <= totalDays; day++) {
+      days.push({
+        day,
+        isCurrentMonth: true,
+        date: new Date(year, month, day)
+      })
+    }
+
+    // 下月的日期（补齐到42格，6行）
+    const remaining = 42 - days.length
+    for (let day = 1; day <= remaining; day++) {
+      days.push({
+        day,
+        isCurrentMonth: false,
+        date: new Date(year, month + 1, day)
+      })
+    }
+
+    return days
   }
 
-  isSelected(day: number) {
-    const { selectedDate, currentYear, currentMonth } = this.state
-    const date = new Date(currentYear, currentMonth, day).toISOString().split('T')[0]
-    return selectedDate === date
+  formatDate(date: Date) {
+    return `${date.getFullYear()}年${date.getMonth() + 1}月`
   }
 
   render() {
-    const { currentYear, currentMonth, selectedDate } = this.state
-    const daysInMonth = this.getDaysInMonth(currentYear, currentMonth)
-    const firstDay = this.getFirstDayOfMonth(currentYear, currentMonth)
-    const weekdays = ['日', '一', '二', '三', '四', '五', '六']
-
-    const days = []
-    for (let i = 0; i < firstDay; i++) {
-      days.push(null)
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i)
-    }
-
-    const selectedTodos = this.getTodosForDate(selectedDate)
-    const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月',
-                        '七月', '八月', '九月', '十月', '十一月', '十二月']
+    const { currentMonth, selectedDate, today, loading } = this.state
+    const weekDays = ['日', '一', '二', '三', '四', '五', '六']
+    const calendarDays = this.getCalendarDays()
+    const dayTodos = this.getTodosForDate(selectedDate)
+    const dayEvents = this.getEventsForDate(selectedDate)
 
     return (
       <View className="calendar-page">
+        <View className="page-header">
+          <Text className="page-title">日历</Text>
+        </View>
+
         <View className="calendar-header">
-          <View className="nav-btn" onClick={this.prevMonth.bind(this)}>
-            <Text>‹</Text>
+          <View className="nav-btn" onClick={() => this.prevMonth()}>
+            <Text className="nav-text">‹</Text>
           </View>
-          <View className="header-title">
-            <Text className="year">{currentYear}年</Text>
-            <Text className="month">{monthNames[currentMonth]}</Text>
-          </View>
-          <View className="nav-btn" onClick={this.nextMonth.bind(this)}>
-            <Text>›</Text>
+          <Text className="month-text">{this.formatDate(currentMonth)}</Text>
+          <View className="nav-btn" onClick={() => this.nextMonth()}>
+            <Text className="nav-text">›</Text>
           </View>
         </View>
 
-        <View className="weekdays">
-          {weekdays.map((day, i) => (
-            <View key={i} className={`weekday ${i === 0 || i === 6 ? 'weekend' : ''}`}>
-              {day}
+        <View className="week-row">
+          {weekDays.map(day => (
+            <View key={day} className="week-cell">
+              <Text className="week-text">{day}</Text>
             </View>
           ))}
         </View>
 
         <View className="calendar-grid">
-          {days.map((day, index) => {
-            if (day === null) {
-              return <View key={`empty-${index}`} className="day-cell empty" />
-            }
-            const dateStr = new Date(currentYear, currentMonth, day).toISOString().split('T')[0]
-            const dayTodos = this.getTodosForDate(dateStr)
+          {calendarDays.map((cell, idx) => {
+            const isToday = this.isSameDay(cell.date, today)
+            const isSelected = this.isSameDay(cell.date, selectedDate)
+            const todosForDay = this.getTodosForDate(cell.date)
+            const eventsForDay = this.getEventsForDate(cell.date)
+            const totalItems = todosForDay.length + eventsForDay.length
+
             return (
               <View
-                key={day}
-                className={`day-cell ${this.isSelected(day) ? 'selected' : ''} ${this.isToday(day) ? 'today' : ''}`}
-                onClick={() => this.selectDate(day)}
+                key={idx}
+                className={`day-cell ${!cell.isCurrentMonth ? 'other-month' : ''} ${isSelected ? 'selected' : ''}`}
+                onClick={() => this.selectDate(cell.day, cell.isCurrentMonth)}
               >
-                <View className="day-number">{day}</View>
-                {dayTodos.length > 0 && (
+                <Text className={`day-number ${isToday ? 'today' : ''}`}>{cell.day}</Text>
+                {totalItems > 0 && (
                   <View className="day-dots">
-                    {dayTodos.slice(0, 3).map(todo => (
-                      <View
-                        key={todo.id}
-                        className="dot"
-                        style={{ backgroundColor: this.getPriorityColor(todo.priority) }}
-                      />
-                    ))}
+                    {totalItems > 3 ? (
+                      <Text className="more-text">+{totalItems}</Text>
+                    ) : (
+                      Array.from({ length: Math.min(totalItems, 3) }).map((_, i) => (
+                        <View
+                          key={i}
+                          className="day-dot"
+                          style={{
+                            backgroundColor: i < eventsForDay.length
+                              ? '#0ea5e9'
+                              : this.getPriorityColor(todosForDay[i - eventsForDay.length]?.priority || 'medium')
+                          }}
+                        />
+                      ))
+                    )}
                   </View>
                 )}
               </View>
@@ -172,32 +256,47 @@ export default class CalendarPage extends Component {
         </View>
 
         <View className="day-detail">
-          <Text className="detail-title">{selectedDate}</Text>
-          <ScrollView scrollY className="detail-list">
-            {selectedTodos.length === 0 ? (
-              <View className="empty-detail">
-                <Text className="empty-icon">📅</Text>
-                <Text className="empty-text">当日暂无任务</Text>
-              </View>
-            ) : (
-              selectedTodos.map(todo => (
-                <View key={todo.id} className="event-card">
-                  <View
-                    className="event-bar"
-                    style={{ backgroundColor: this.getPriorityColor(todo.priority) }}
-                  />
+          <Text className="detail-date">
+            {selectedDate.getMonth() + 1}月{selectedDate.getDate()}日
+          </Text>
+          {loading ? (
+            <View className="empty-state">
+              <Text className="empty-icon">⏳</Text>
+              <Text className="empty-text">加载中...</Text>
+            </View>
+          ) : dayEvents.length === 0 && dayTodos.length === 0 ? (
+            <View className="empty-state">
+              <Text className="empty-icon">📅</Text>
+              <Text className="empty-text">当日暂无安排</Text>
+            </View>
+          ) : (
+            <ScrollView className="day-items" scrollY>
+              {dayEvents.map(event => (
+                <View key={event.id} className="day-event">
+                  <View className="event-color" />
                   <View className="event-content">
-                    <Text className={`event-title ${todo.completed ? 'completed' : ''}`}>
-                      {todo.title}
+                    <Text className="event-title">{event.title}</Text>
+                    <Text className="event-time">
+                      {new Date(event.start_time).getHours()}:{String(new Date(event.start_time).getMinutes()).padStart(2, '0')}
+                      {' - '}
+                      {new Date(event.end_time).getHours()}:{String(new Date(event.end_time).getMinutes()).padStart(2, '0')}
                     </Text>
-                    {!todo.completed && (
-                      <Text className="event-status">待完成</Text>
-                    )}
                   </View>
                 </View>
-              ))
-            )}
-          </ScrollView>
+              ))}
+              {dayTodos.map(todo => (
+                <View key={todo.id} className="day-todo">
+                  <View
+                    className="todo-dot"
+                    style={{ backgroundColor: this.getPriorityColor(todo.priority) }}
+                  />
+                  <Text className={`todo-text ${todo.status === 'completed' ? 'completed' : ''}`}>
+                    {todo.title}
+                  </Text>
+                </View>
+              ))}
+            </ScrollView>
+          )}
         </View>
       </View>
     )
